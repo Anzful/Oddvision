@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Oddvision</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 320px;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .container {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .header h1 {
+      font-size: 22px;
+      color: #667eea;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      font-size: 13px;
+      color: #999;
+    }
+
+    .toggle-section {
+      margin-bottom: 20px;
+      padding: 16px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .toggle-label {
+      display: block;
+      margin-bottom: 12px;
+      font-weight: 600;
+      color: #333;
+      font-size: 14px;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 60px;
+      height: 34px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: 0.3s;
+      border-radius: 34px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 26px;
+      width: 26px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: 0.3s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(26px);
+    }
+
+    .status {
+      margin-top: 12px;
+      font-size: 12px;
+      color: #666;
+      font-style: italic;
+    }
+
+    .status.enabled {
+      color: #667eea;
+    }
+
+    .instructions {
+      background: #f8f9fa;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+
+    .instructions h3 {
+      font-size: 14px;
+      margin-bottom: 8px;
+      color: #333;
+    }
+
+    .instructions p {
+      font-size: 12px;
+      color: #666;
+      line-height: 1.5;
+      margin-bottom: 8px;
+    }
+
+    .shortcut {
+      display: inline-block;
+      background: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 11px;
+      font-weight: 600;
+      color: #667eea;
+      border: 1px solid #e0e0e0;
+    }
+
+    .settings-btn {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .settings-btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .settings-btn:active {
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🔮 Oddvision</h1>
+      <p>AI Page Assistant</p>
+    </div>
+
+    <div class="toggle-section">
+      <label class="toggle-label">Extension Status</label>
+      <label class="switch">
+        <input type="checkbox" id="enable-toggle">
+        <span class="slider"></span>
+      </label>
+      <div class="status" id="status-text">Disabled</div>
+    </div>
+
+    <div class="instructions">
+      <h3>📖 How to Use</h3>
+      <p><strong>1.</strong> <span class="shortcut">Ctrl+Shift+C</span> - Capture page</p>
+      <p><strong>2.</strong> <span class="shortcut">Ctrl+Shift+A</span> - Ask AI</p>
+      <p><strong>3.</strong> <span class="shortcut">Ctrl+Shift+Y</span> - View results</p>
+      <p style="margin-top: 12px; font-size: 11px; color: #999;">💡 Configure AI provider in settings first!</p>
+    </div>
+
+    <button class="settings-btn" id="settings-btn">⚙️ Configure AI Settings</button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
+

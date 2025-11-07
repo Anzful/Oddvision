@@ -1,0 +1,380 @@
+/* Oddvision Overlay Styles */
+
+/* Notification Styles */
+#oddvision-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 16px 24px;
+  border-radius: 8px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 2147483646; /* Just below overlay */
+  animation: oddvision-notification-slide-in 0.3s ease-out;
+  pointer-events: none;
+}
+
+@keyframes oddvision-notification-slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.oddvision-notification-fadeout {
+  animation: oddvision-notification-fade-out 0.3s ease-out forwards;
+}
+
+@keyframes oddvision-notification-fade-out {
+  to {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+}
+
+.oddvision-notification-success {
+  background: #4caf50;
+  color: white;
+}
+
+.oddvision-notification-error {
+  background: #f44336;
+  color: white;
+}
+
+.oddvision-notification-warning {
+  background: #ff9800;
+  color: white;
+}
+
+.oddvision-notification-info {
+  background: #2196f3;
+  color: white;
+}
+
+#oddvision-overlay {
+  all: initial;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 2147483647; /* Maximum z-index */
+  display: none;
+  justify-content: center;
+  align-items: center;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #333;
+}
+
+#oddvision-overlay * {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.oddvision-container {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 700px;
+  height: 80vh;
+  max-height: 600px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: oddvision-slide-in 0.3s ease-out;
+}
+
+@keyframes oddvision-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.oddvision-header {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 20px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid rgba(102, 126, 234, 0.2);
+}
+
+.oddvision-header h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #667eea;
+  margin: 0;
+}
+
+.oddvision-close {
+  background: none;
+  border: none;
+  font-size: 32px;
+  line-height: 1;
+  color: #999;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.oddvision-close:hover {
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+  transform: scale(1.1);
+}
+
+.oddvision-content {
+  flex: 1;
+  background: white;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.oddvision-chat-area {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.oddvision-chat-area::-webkit-scrollbar {
+  width: 8px;
+}
+
+.oddvision-chat-area::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.oddvision-chat-area::-webkit-scrollbar-thumb {
+  background: #c0c0c0;
+  border-radius: 4px;
+}
+
+.oddvision-chat-area::-webkit-scrollbar-thumb:hover {
+  background: #a0a0a0;
+}
+
+.oddvision-welcome {
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+}
+
+.oddvision-welcome p {
+  margin-bottom: 12px;
+  font-size: 15px;
+}
+
+.oddvision-tip {
+  font-size: 13px;
+  color: #999;
+  font-style: italic;
+}
+
+.oddvision-message {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: oddvision-fade-in 0.3s ease-out;
+}
+
+@keyframes oddvision-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.oddvision-message-label {
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #999;
+}
+
+.oddvision-message-user .oddvision-message-label {
+  color: #667eea;
+}
+
+.oddvision-message-ai .oddvision-message-label {
+  color: #764ba2;
+}
+
+.oddvision-message-text {
+  background: #f5f5f5;
+  padding: 12px 16px;
+  border-radius: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.oddvision-message-user .oddvision-message-text {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  margin-left: auto;
+  max-width: 80%;
+}
+
+.oddvision-message-ai .oddvision-message-text {
+  background: #f5f5f5;
+  color: #333;
+  max-width: 90%;
+}
+
+.oddvision-error {
+  background: #fee;
+  border: 1px solid #fcc;
+  color: #c33;
+  padding: 12px 16px;
+  border-radius: 8px;
+  text-align: center;
+  animation: oddvision-shake 0.3s ease-out;
+}
+
+@keyframes oddvision-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
+}
+
+.oddvision-input-area {
+  padding: 20px 24px;
+  background: #fafafa;
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  gap: 12px;
+}
+
+#oddvision-input {
+  flex: 1;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-family: inherit;
+  font-size: 14px;
+  resize: none;
+  outline: none;
+  transition: border-color 0.2s;
+  background: white;
+}
+
+#oddvision-input:focus {
+  border-color: #667eea;
+}
+
+.oddvision-submit {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 24px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 120px;
+}
+
+.oddvision-submit:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+}
+
+.oddvision-submit:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.oddvision-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.oddvision-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.oddvision-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: oddvision-spin 0.8s linear infinite;
+}
+
+@keyframes oddvision-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .oddvision-container {
+    width: 95%;
+    height: 90vh;
+    max-height: none;
+  }
+  
+  .oddvision-header {
+    padding: 16px 20px;
+  }
+  
+  .oddvision-header h2 {
+    font-size: 18px;
+  }
+  
+  .oddvision-chat-area {
+    padding: 16px;
+  }
+  
+  .oddvision-input-area {
+    padding: 16px;
+    flex-direction: column;
+  }
+  
+  .oddvision-submit {
+    width: 100%;
+  }
+}
+
