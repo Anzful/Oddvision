@@ -7,6 +7,7 @@ const providerInfoDiv = document.getElementById('provider-info');
 const toggleVisibility = document.getElementById('toggle-visibility');
 const settingsForm = document.getElementById('settings-form');
 const notification = document.getElementById('notification');
+const overlayPositionSelect = document.getElementById('overlay-position');
 
 // Provider information
 const providerInfo = {
@@ -85,13 +86,18 @@ const providerInfo = {
 };
 
 // Load saved settings
-chrome.storage.sync.get(['provider', 'apiKey'], (result) => {
+chrome.storage.sync.get(['provider', 'apiKey', 'overlayPosition'], (result) => {
   if (result.provider) {
     providerSelect.value = result.provider;
     updateProviderInfo(result.provider);
   }
   if (result.apiKey) {
     apiKeyInput.value = result.apiKey;
+  }
+  if (result.overlayPosition) {
+    overlayPositionSelect.value = result.overlayPosition;
+  } else {
+    overlayPositionSelect.value = 'top-right'; // Default
   }
 });
 
@@ -144,6 +150,7 @@ settingsForm.addEventListener('submit', (e) => {
 
   const provider = providerSelect.value;
   const apiKey = apiKeyInput.value.trim();
+  const overlayPosition = overlayPositionSelect.value;
 
   if (!provider) {
     alert('Please select an AI provider');
@@ -159,7 +166,8 @@ settingsForm.addEventListener('submit', (e) => {
   // Save settings
   chrome.storage.sync.set({
     provider: provider,
-    apiKey: apiKey
+    apiKey: apiKey,
+    overlayPosition: overlayPosition
   }, () => {
     showNotification('Settings saved successfully!');
   });

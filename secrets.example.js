@@ -1,7 +1,7 @@
 // Oddvision Secrets Template
 // Copy this file to 'secrets.js' and add your own API key
 
-const OddvisionConfig = {
+var OddvisionConfig = {
   // Choose your provider: 'groq', 'gemini', 'huggingface', 'openai-mini', etc.
   defaultProvider: 'groq',
   

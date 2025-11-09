@@ -1,6 +1,15 @@
 // Oddvision Background Service Worker
 // Configuration is loaded from secrets.js
-importScripts('secrets.js');
+try {
+  importScripts('secrets.js');
+} catch (error) {
+  console.error('Failed to load secrets.js:', error);
+  // Define a fallback config
+  var OddvisionConfig = {
+    defaultProvider: 'groq',
+    apiKey: ''
+  };
+}
 
 // Handle keyboard shortcut command
 chrome.commands.onCommand.addListener((command) => {
@@ -14,6 +23,8 @@ chrome.commands.onCommand.addListener((command) => {
         action = 'ask-ai';
       } else if (command === 'toggle-overlay') {
         action = 'toggle-overlay';
+      } else if (command === 'toggle-text-color') {
+        action = 'toggle-text-color';
       }
       
       if (action) {

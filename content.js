@@ -37,6 +37,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   } else if (request.action === 'toggle-overlay') {
     // Toggle overlay visibility
     toggleOverlay();
+  } else if (request.action === 'toggle-text-color') {
+    // Toggle text color
+    toggleTextColor();
   }
 });
 
@@ -45,8 +48,8 @@ function capturePageContext() {
   pageContent = extractPageText();
   console.log('Oddvision: Captured', pageContent.length, 'characters from page');
   
-  // Show brief notification
-  showNotification('📄 Page context captured!', 'success');
+  // Show yellow indicator dot
+  showIndicatorDot('yellow');
 }
 
 // Send context to AI (triggered by Ctrl+Shift+2)
@@ -74,7 +77,8 @@ async function sendContextToAI() {
   }
   
   isProcessing = true;
-  showNotification('🤖 Asking AI...', 'info');
+  // Show green indicator dot
+  showIndicatorDot('green');
   
   try {
     // Send just the context as the prompt
@@ -103,8 +107,6 @@ async function sendContextToAI() {
     
     lastAIResponse = response;
     console.log('Oddvision: AI response received');
-    
-    showNotification('✅ AI response ready! Press Ctrl+Shift+Y to view', 'success');
     
     // If overlay is already visible, update it
     if (overlayVisible && overlayElement) {
@@ -138,6 +140,27 @@ function showNotification(message, type = 'info') {
     notification.classList.add('oddvision-notification-fadeout');
     setTimeout(() => notification.remove(), 300);
   }, 3000);
+}
+
+// Show small colored indicator dot
+function showIndicatorDot(color) {
+  // Remove existing indicator
+  const existing = document.querySelector('#oddvision-indicator-dot');
+  if (existing) {
+    existing.remove();
+  }
+  
+  const indicator = document.createElement('div');
+  indicator.id = 'oddvision-indicator-dot';
+  indicator.className = `oddvision-indicator-dot oddvision-indicator-${color}`;
+  
+  document.body.appendChild(indicator);
+  
+  // Auto-remove after 1 second
+  setTimeout(() => {
+    indicator.classList.add('oddvision-indicator-fadeout');
+    setTimeout(() => indicator.remove(), 300);
+  }, 1000);
 }
 
 // Extract all visible text from the page
@@ -210,27 +233,17 @@ function createOverlay() {
     <div class="oddvision-container">
       <div class="oddvision-header">
         <h2>🔮 Oddvision</h2>
-        <button class="oddvision-close" id="oddvision-close-btn" title="Close (Ctrl+Shift+Y)">×</button>
+        <div class="oddvision-header-buttons">
+          <button class="oddvision-color-toggle" id="oddvision-color-toggle-btn" title="Toggle text color (Alt+4)">⚫</button>
+          <button class="oddvision-close" id="oddvision-close-btn" title="Close (Alt+3)">×</button>
+        </div>
       </div>
       <div class="oddvision-content">
         <div class="oddvision-chat-area" id="oddvision-chat-area">
           <div class="oddvision-welcome">
-            <p>Ask me anything about this page! I've analyzed the content and I'm ready to help.</p>
-            <p class="oddvision-tip">💡 Tip: Press Ctrl+Enter to submit your question</p>
+            <p>AI analysis will appear here</p>
+            <p class="oddvision-tip">💡 Press Alt+1 to capture, Alt+2 to analyze</p>
           </div>
-        </div>
-        <div class="oddvision-input-area">
-          <textarea 
-            id="oddvision-input" 
-            placeholder="Ask a question about this page..." 
-            rows="3"
-          ></textarea>
-          <button id="oddvision-submit-btn" class="oddvision-submit">
-            <span class="oddvision-submit-text">Ask AI</span>
-            <span class="oddvision-loading" style="display: none;">
-              <span class="oddvision-spinner"></span> Thinking...
-            </span>
-          </button>
         </div>
       </div>
     </div>
@@ -238,6 +251,9 @@ function createOverlay() {
   
   document.body.appendChild(overlay);
   overlayElement = overlay;
+  
+  // Apply initial position class
+  overlay.classList.add('oddvision-position-top-right');
   
   // Prevent events from bubbling to the page
   overlay.addEventListener('mousedown', (e) => e.stopPropagation());
@@ -250,17 +266,15 @@ function createOverlay() {
   
   // Set up event listeners
   const closeBtn = overlay.querySelector('#oddvision-close-btn');
-  const submitBtn = overlay.querySelector('#oddvision-submit-btn');
-  const inputArea = overlay.querySelector('#oddvision-input');
+  const colorToggleBtn = overlay.querySelector('#oddvision-color-toggle-btn');
   
   closeBtn.addEventListener('click', hideOverlay);
-  submitBtn.addEventListener('click', submitQuestion);
+  colorToggleBtn.addEventListener('click', toggleTextColor);
   
-  inputArea.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && e.ctrlKey) {
-      e.preventDefault();
-      submitQuestion();
-    }
+  // Load saved text color preference
+  chrome.storage.sync.get(['textColor'], (result) => {
+    const textColor = result.textColor || 'white';
+    applyTextColor(textColor);
   });
   
   return overlay;
@@ -281,6 +295,13 @@ function showOverlay() {
     createOverlay();
   }
   
+  // Ensure position class is applied
+  chrome.storage.sync.get(['overlayPosition'], (result) => {
+    const position = result.overlayPosition || 'top-right';
+    overlayElement.className = '';
+    overlayElement.classList.add('oddvision-position-' + position);
+  });
+  
   overlayElement.style.display = 'flex';
   overlayVisible = true;
   
@@ -297,23 +318,13 @@ function displayAIResponse(response) {
   // Clear existing content
   chatArea.innerHTML = '';
   
-  // Add context info
-  const contextInfo = document.createElement('div');
-  contextInfo.className = 'oddvision-context-info';
-  contextInfo.innerHTML = `
-    <div style="font-size: 11px; color: #777; margin-bottom: 12px; padding: 8px 10px; background: rgba(40, 40, 55, 0.4); border-radius: 6px; border: 1px solid rgba(70, 70, 90, 0.3);">
-      📄 ${pageContent.length} chars • 🤖 Ready
-    </div>
-  `;
-  chatArea.appendChild(contextInfo);
-  
   // Add AI response
   const messageDiv = document.createElement('div');
   messageDiv.className = 'oddvision-message oddvision-message-ai';
   
   const label = document.createElement('div');
   label.className = 'oddvision-message-label';
-  label.textContent = '🤖 AI Analysis';
+  label.textContent = '🤖';
   
   const text = document.createElement('div');
   text.className = 'oddvision-message-text';
@@ -335,122 +346,33 @@ function hideOverlay() {
   overlayVisible = false;
 }
 
-// Submit question to AI
-async function submitQuestion() {
-  const input = overlayElement.querySelector('#oddvision-input');
-  const submitBtn = overlayElement.querySelector('#oddvision-submit-btn');
-  const chatArea = overlayElement.querySelector('#oddvision-chat-area');
-  const submitText = submitBtn.querySelector('.oddvision-submit-text');
-  const loadingIndicator = submitBtn.querySelector('.oddvision-loading');
-  
-  const question = input.value.trim();
-  if (!question) {
-    showError('Please enter a question');
-    return;
-  }
-  
-  // Get settings
-  const settings = await chrome.storage.sync.get(['provider', 'apiKey']);
-  if (!settings.provider) {
-    showError('Please configure AI provider in extension options');
-    return;
-  }
-  
-  if (settings.provider !== 'ollama' && !settings.apiKey) {
-    showError('Please add API key in extension options');
-    return;
-  }
-  
-  // Add question to chat
-  addMessage('user', question);
-  input.value = '';
-  
-  // Show loading state
-  submitBtn.disabled = true;
-  submitText.style.display = 'none';
-  loadingIndicator.style.display = 'flex';
-  
-  try {
-    // Build the full prompt with context
-    const fullPrompt = pageContent 
-      ? `Context: ${pageContent}\n\nQuestion: ${question}`
-      : question;
+// Toggle text color between white and black
+function toggleTextColor() {
+  chrome.storage.sync.get(['textColor'], (result) => {
+    const currentColor = result.textColor || 'white';
+    const newColor = currentColor === 'white' ? 'black' : 'white';
     
-    // Call background script (no CORS restrictions!)
-    const response = await new Promise((resolve, reject) => {
-      chrome.runtime.sendMessage(
-        {
-          action: 'callAI',
-          provider: settings.provider,
-          apiKey: settings.apiKey,
-          prompt: fullPrompt
-        },
-        (response) => {
-          if (chrome.runtime.lastError) {
-            reject(new Error(chrome.runtime.lastError.message));
-          } else if (response.success) {
-            resolve(response.response);
-          } else {
-            reject(new Error(response.error));
-          }
-        }
-      );
+    chrome.storage.sync.set({ textColor: newColor }, () => {
+      applyTextColor(newColor);
     });
-    
-    addMessage('ai', response);
-  } catch (error) {
-    console.error('Oddvision AI Error:', error);
-    showError(`AI Error: ${error.message}`);
-  } finally {
-    // Reset loading state
-    submitBtn.disabled = false;
-    submitText.style.display = 'inline';
-    loadingIndicator.style.display = 'none';
-  }
+  });
 }
 
-// Add message to chat area
-function addMessage(type, content) {
-  const chatArea = overlayElement.querySelector('#oddvision-chat-area');
+// Apply text color to overlay
+function applyTextColor(color) {
+  if (!overlayElement) return;
   
-  // Remove welcome message if present
-  const welcome = chatArea.querySelector('.oddvision-welcome');
-  if (welcome) {
-    welcome.remove();
+  const colorToggleBtn = overlayElement.querySelector('#oddvision-color-toggle-btn');
+  
+  if (color === 'black') {
+    overlayElement.classList.add('oddvision-text-black');
+    overlayElement.classList.remove('oddvision-text-white');
+    if (colorToggleBtn) colorToggleBtn.textContent = '⚪';
+  } else {
+    overlayElement.classList.add('oddvision-text-white');
+    overlayElement.classList.remove('oddvision-text-black');
+    if (colorToggleBtn) colorToggleBtn.textContent = '⚫';
   }
-  
-  const messageDiv = document.createElement('div');
-  messageDiv.className = `oddvision-message oddvision-message-${type}`;
-  
-  const label = document.createElement('div');
-  label.className = 'oddvision-message-label';
-  label.textContent = type === 'user' ? '👤 You' : '🤖 AI';
-  
-  const text = document.createElement('div');
-  text.className = 'oddvision-message-text';
-  text.textContent = content;
-  
-  messageDiv.appendChild(label);
-  messageDiv.appendChild(text);
-  chatArea.appendChild(messageDiv);
-  
-  // Scroll to bottom
-  chatArea.scrollTop = chatArea.scrollHeight;
-}
-
-// Show error message
-function showError(message) {
-  const chatArea = overlayElement.querySelector('#oddvision-chat-area');
-  
-  const errorDiv = document.createElement('div');
-  errorDiv.className = 'oddvision-error';
-  errorDiv.textContent = `⚠️ ${message}`;
-  
-  chatArea.appendChild(errorDiv);
-  chatArea.scrollTop = chatArea.scrollHeight;
-  
-  // Remove error after 5 seconds
-  setTimeout(() => errorDiv.remove(), 5000);
 }
 
 // All API calls now handled by background.js (no CORS restrictions!)

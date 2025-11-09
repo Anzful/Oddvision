@@ -49,24 +49,31 @@
   "commands": {
     "capture-context": {
       "suggested_key": {
-        "default": "Ctrl+Shift+1",
-        "mac": "Command+Shift+1"
+        "default": "Alt+1",
+        "mac": "Alt+1"
       },
       "description": "Capture page context"
     },
     "ask-ai": {
       "suggested_key": {
-        "default": "Ctrl+Shift+2",
-        "mac": "Command+Shift+2"
+        "default": "Alt+2",
+        "mac": "Alt+2"
       },
       "description": "Send context to AI"
     },
     "toggle-overlay": {
       "suggested_key": {
-        "default": "Ctrl+Shift+Y",
-        "mac": "Command+Shift+Y"
+        "default": "Alt+3",
+        "mac": "Alt+3"
       },
       "description": "Toggle results overlay"
+    },
+    "toggle-text-color": {
+      "suggested_key": {
+        "default": "Alt+4",
+        "mac": "Alt+4"
+      },
+      "description": "Toggle text color"
     }
   }
 }
