@@ -5,173 +5,95 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Oddvision</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    :root {
+      --bg: #0f0f19;
+      --panel: rgba(15, 15, 25, 0.72);
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #eaeaf0;
+      --text-dim: #a7a8b3;
+      --accent: #7c3aed;
     }
-
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      width: 320px;
-      padding: 20px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      width: 340px;
+      padding: 14px;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color: var(--text);
+      background: radial-gradient(500px 300px at 85% -10%, rgba(124,58,237,.16), transparent 60%),
+                  radial-gradient(420px 260px at 5% 0%, rgba(34,211,238,.12), transparent 60%),
+                  var(--bg);
     }
-
     .container {
-      background: white;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      border: 1px solid var(--border);
+      background: var(--panel);
+      border-radius: 14px;
+      padding: 16px;
+      backdrop-filter: blur(10px);
     }
-
-    .header {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-
-    .header h1 {
-      font-size: 22px;
-      color: #667eea;
-      margin-bottom: 8px;
-    }
-
-    .header p {
-      font-size: 13px;
-      color: #999;
-    }
+    .header { text-align: center; margin-bottom: 14px; }
+    .header h1 { font-size: 20px; letter-spacing: -.01em; margin-bottom: 4px; }
+    .header p { font-size: 12px; color: var(--text-dim); }
 
     .toggle-section {
-      margin-bottom: 20px;
-      padding: 16px;
-      background: #f8f9fa;
-      border-radius: 8px;
+      margin-bottom: 14px;
+      padding: 12px;
+      background: rgba(255,255,255,.04);
+      border-radius: 10px;
+      border: 1px solid var(--border);
       text-align: center;
     }
-
     .toggle-label {
-      display: block;
-      margin-bottom: 12px;
-      font-weight: 600;
-      color: #333;
-      font-size: 14px;
+      display: block; margin-bottom: 10px; font-weight: 800; color: var(--text); font-size: 13px;
     }
-
-    .switch {
-      position: relative;
-      display: inline-block;
-      width: 60px;
-      height: 34px;
-    }
-
-    .switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-
+    .switch { position: relative; display: inline-block; width: 56px; height: 30px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
     .slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: #ccc;
-      transition: 0.3s;
-      border-radius: 34px;
+      position: absolute; cursor: pointer; inset: 0; border-radius: 30px;
+      background: rgba(255,255,255,.08); border: 1px solid var(--border);
+      transition: 0.25s;
     }
-
     .slider:before {
-      position: absolute;
-      content: "";
-      height: 26px;
-      width: 26px;
-      left: 4px;
-      bottom: 4px;
-      background-color: white;
-      transition: 0.3s;
-      border-radius: 50%;
+      position: absolute; content: ""; height: 22px; width: 22px; left: 4px; top: 3px;
+      background: #fff; border-radius: 50%; transition: 0.25s;
+      box-shadow: 0 2px 8px rgba(0,0,0,.2);
     }
-
     input:checked + .slider {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, var(--accent), #5b21b6);
+      border-color: transparent;
+      box-shadow: 0 6px 20px rgba(124,58,237,.35);
     }
-
-    input:checked + .slider:before {
-      transform: translateX(26px);
-    }
-
-    .status {
-      margin-top: 12px;
-      font-size: 12px;
-      color: #666;
-      font-style: italic;
-    }
-
-    .status.enabled {
-      color: #667eea;
-    }
+    input:checked + .slider:before { transform: translateX(26px); }
+    .status { margin-top: 8px; font-size: 12px; color: var(--text-dim); font-style: italic; }
+    .status.enabled { color: #22d3ee; }
 
     .instructions {
-      background: #f8f9fa;
-      padding: 16px;
-      border-radius: 8px;
-      margin-bottom: 16px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--border);
+      padding: 12px;
+      border-radius: 10px;
+      margin-bottom: 12px;
     }
-
-    .instructions h3 {
-      font-size: 14px;
-      margin-bottom: 8px;
-      color: #333;
-    }
-
-    .instructions p {
-      font-size: 12px;
-      color: #666;
-      line-height: 1.5;
-      margin-bottom: 8px;
-    }
-
+    .instructions h3 { font-size: 13px; margin-bottom: 6px; color: var(--text); }
+    .instructions p { font-size: 12px; color: var(--text-dim); margin-bottom: 6px; }
     .shortcut {
-      display: inline-block;
-      background: white;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-family: monospace;
-      font-size: 11px;
-      font-weight: 600;
-      color: #667eea;
-      border: 1px solid #e0e0e0;
+      display: inline-block; background: rgba(255,255,255,.06); padding: 3px 6px; border-radius: 6px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      font-size: 11px; font-weight: 800; color: var(--text); border: 1px solid var(--border);
     }
 
     .settings-btn {
-      width: 100%;
-      padding: 12px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: transform 0.2s;
+      width: 100%; padding: 12px; border: none; border-radius: 10px; cursor: pointer;
+      background: linear-gradient(135deg, var(--accent), #5b21b6); color: white; font-weight: 800;
+      box-shadow: 0 10px 24px rgba(124,58,237,.35);
     }
-
-    .settings-btn:hover {
-      transform: translateY(-2px);
-    }
-
-    .settings-btn:active {
-      transform: translateY(0);
-    }
+    .settings-btn:hover { filter: brightness(1.05); }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
       <h1>🔮 Oddvision</h1>
-      <p>AI Page Assistant</p>
+      <p style="opacity:.75">Stealth overlay controls</p>
     </div>
 
     <div class="toggle-section">
@@ -185,10 +107,11 @@
 
     <div class="instructions">
       <h3>📖 How to Use</h3>
-      <p><strong>1.</strong> <span class="shortcut">Ctrl+Shift+1</span> - Capture page</p>
-      <p><strong>2.</strong> <span class="shortcut">Ctrl+Shift+2</span> - Ask AI</p>
-      <p><strong>3.</strong> <span class="shortcut">Ctrl+Shift+Y</span> - View results</p>
-      <p style="margin-top: 12px; font-size: 11px; color: #999;">💡 Configure AI provider in settings first!</p>
+      <p><strong>1.</strong> <span class="shortcut">Alt+1</span> - Capture page</p>
+      <p><strong>2.</strong> <span class="shortcut">Alt+2</span> - Analyze</p>
+      <p><strong>3.</strong> <span class="shortcut">Alt+3</span> - View overlay</p>
+      <p><strong>4.</strong> <span class="shortcut">Alt+4</span> - Text color</p>
+      <p style="margin-top: 12px; font-size: 11px; color: #999;">💡 Automatic failover: Groq → OpenRouter</p>
     </div>
 
     <button class="settings-btn" id="settings-btn">⚙️ Configure AI Settings</button>

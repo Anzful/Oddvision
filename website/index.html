@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0f0f19" />
+    <meta name="description" content="Oddvision — a stealth AI overlay for any webpage. Capture content, analyze instantly, stay under the radar." />
+    <title>Oddvision — Stealth AI Overlay</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <!-- Tabler Icons (lightweight, beautiful) -->
+    <link rel="stylesheet" href="https://unpkg.com/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="ov-header">
+      <a class="ov-brand" href="#top" aria-label="Oddvision home">
+        <span class="ov-brand-emoji">🔮</span> Oddvision
+      </a>
+      <nav class="ov-nav">
+        <a href="#features">Features</a>
+        <a href="#how">How it works</a>
+        <a href="#providers">Providers</a>
+        <a href="#rules">Rules</a>
+        <a href="#install" class="ov-btn ov-btn--ghost">Install</a>
+      </nav>
+      <button class="ov-nav-toggle" id="navToggle" aria-label="Toggle menu">☰</button>
+    </header>
+
+    <main id="top">
+      <!-- Hero -->
+      <section class="ov-hero">
+        <div class="ov-hero-bg" aria-hidden="true"></div>
+        <div class="ov-container">
+          <h1 class="ov-hero-title">Stealth AI overlay for any webpage</h1>
+          <p class="ov-hero-subtitle">
+            Capture content with one shortcut, analyze instantly, keep it low‑key. Oddvision sits quietly in the corner and answers fast.
+          </p>
+          <div class="ov-cta">
+            <a id="installPrimary" class="ov-btn ov-btn--primary" href="#" rel="noopener">Add to Chrome</a>
+            <a class="ov-btn ov-btn--ghost" href="#install">Install locally</a>
+          </div>
+          <div class="ov-kbd">
+            <span><kbd>Alt</kbd>+<kbd>1</kbd> Capture</span>
+            <span><kbd>Alt</kbd>+<kbd>2</kbd> Analyze</span>
+            <span><kbd>Alt</kbd>+<kbd>3</kbd> View overlay</span>
+            <span><kbd>Alt</kbd>+<kbd>4</kbd> Text color</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Features -->
+      <section id="features" class="ov-section">
+        <div class="ov-container">
+          <h2 class="ov-section-title">Why Oddvision</h2>
+          <div class="ov-grid">
+            <div class="ov-card reveal">
+              <div class="ov-card-icon">
+                <!-- Infinity off -->
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M9.5 9.5c1.2 1.2 1.2 3.1 0 4.3L8 15.3c-1.8 1.8-4.7 1.8-6.5 0s-1.8-4.7 0-6.5S4.2 7 6 8.8l1.5 1.5" />
+                  <path d="M14.5 9.5c-1.2 1.2-1.2 3.1 0 4.3L16 15.3c1.8 1.8 4.7 1.8 6.5 0s1.8-4.7 0-6.5S19.8 7 18 8.8l-1.5 1.5" />
+                  <path d="M3 3l18 18" />
+                </svg>
+              </div>
+              <h3>Ultra‑stealth UI</h3>
+              <p>Small, glassy corner widget. Subtle dots, minimal footprint. Looks like nothing. Does a lot.</p>
+            </div>
+            <div class="ov-card reveal">
+              <div class="ov-card-icon">
+                <!-- Keyboard -->
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3" y="6" width="18" height="12" rx="2" />
+                  <path d="M7 10h2M11 10h2M15 10h2M5 14h14" />
+                </svg>
+              </div>
+              <h3>Keyboard first</h3>
+              <p>Capture, analyze, and flip styles with quick shortcuts. No clicks required.</p>
+            </div>
+            <div class="ov-card reveal">
+              <div class="ov-card-icon">
+                <!-- Failover / shuffle -->
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M16 3h5v5" />
+                  <path d="M21 3l-7 7" />
+                  <path d="M8 14l-5 5" />
+                  <path d="M21 16h-5v5" />
+                </svg>
+              </div>
+              <h3>Automatic failover</h3>
+              <p>Groq first, then OpenRouter. If one hiccups, another answers seamlessly.</p>
+            </div>
+            <div class="ov-card reveal">
+              <div class="ov-card-icon">
+                <!-- Lock -->
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="5" y="11" width="14" height="9" rx="2" />
+                  <path d="M7 11V8a5 5 0 0 1 10 0v3" />
+                </svg>
+              </div>
+              <h3>Local keys</h3>
+              <p>Your keys live in your browser. No shared server. Easy to swap providers.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- How it works -->
+      <section id="how" class="ov-section">
+        <div class="ov-container">
+          <h2 class="ov-section-title">How it works</h2>
+          <ol class="ov-steps">
+            <li class="reveal">
+              <span class="ov-step-num">1</span>
+              <div class="ov-step-body">
+                <h3>Capture the page</h3>
+                <p>Press <strong>Alt+1</strong>. We extract visible text (ignoring scripts and styles) with a gentle touch.</p>
+              </div>
+            </li>
+            <li class="reveal">
+              <span class="ov-step-num">2</span>
+              <div class="ov-step-body">
+                <h3>Analyze instantly</h3>
+                <p>Press <strong>Alt+2</strong>. Groq answers fast. If rate‑limited, we fail over to OpenRouter.</p>
+              </div>
+            </li>
+            <li class="reveal">
+              <span class="ov-step-num">3</span>
+              <div class="ov-step-body">
+                <h3>View results overlay</h3>
+                <p>Press <strong>Alt+3</strong> to show or hide the Oddvision overlay and read the answer.</p>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- Providers -->
+      <section id="providers" class="ov-section">
+        <div class="ov-container">
+          <h2 class="ov-section-title">Providers & limits</h2>
+          <div class="ov-providers">
+            <div class="ov-provider reveal">
+              <div class="ov-provider-head">
+                <span class="ov-badge ov-badge--free">Free</span>
+                <h3>Groq — Llama 3.3 70B</h3>
+              </div>
+              <ul class="ov-list">
+                <li>~30 requests / minute</li>
+                <li>~14,400 requests / day</li>
+                <li>Ultra‑low latency</li>
+              </ul>
+            </div>
+            <div class="ov-provider reveal">
+              <div class="ov-provider-head">
+                <span class="ov-badge ov-badge--free">Free</span>
+                <h3>OpenRouter — MiniMax M2</h3>
+              </div>
+              <ul class="ov-list">
+                <li>~20 requests / minute (free)</li>
+                <li>~200 requests / day (free models)</li>
+                <li>Great backup capacity</li>
+              </ul>
+            </div>
+          </div>
+          <p class="ov-note">Numbers may change over time. Oddvision automatically balances to stay responsive.</p>
+        </div>
+      </section>
+
+      <!-- Rules -->
+      <section id="rules" class="ov-section">
+        <div class="ov-container">
+          <h2 class="ov-section-title">Use responsibly</h2>
+          <div class="ov-rules reveal">
+            <p>Oddvision is for research, learning, and productivity. Don’t abuse rate limits, spam, or try to bypass site rules. Respect content owners and local law.</p>
+            <ul class="ov-list">
+              <li>No automated scraping beyond what you actively view.</li>
+              <li>No harmful, illegal, or abusive usage.</li>
+              <li>Keep your API keys private. Rotate if leaked.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Install -->
+      <section id="install" class="ov-section">
+        <div class="ov-container">
+          <h2 class="ov-section-title">Install Oddvision</h2>
+          <div class="ov-install-grid">
+            <div class="ov-install-card reveal">
+              <h3>Chrome Web Store</h3>
+              <p>One‑click install from the store. Updates land automatically.</p>
+              <a id="storeLink" class="ov-btn ov-btn--primary" href="#" rel="noopener">Open in Chrome Web Store</a>
+              <p class="ov-mini-note">Replace the placeholder URL once your extension is published.</p>
+            </div>
+            <div class="ov-install-card reveal">
+              <h3>Local (developer)</h3>
+              <ol class="ov-steps-mini">
+                <li>Open <a href="chrome://extensions/">chrome://extensions/</a></li>
+                <li>Turn on “Developer mode”</li>
+                <li>Click “Load unpacked” and select your Oddvision folder</li>
+              </ol>
+              <a class="ov-btn ov-btn--ghost" href="chrome://extensions/">Open extensions</a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="ov-footer">
+      <div class="ov-container ov-footer-inner">
+        <span>🔮 Oddvision</span>
+        <span class="ov-footer-dim">Ghost‑mode AI overlay for the web</span>
+      </div>
+    </footer>
+
+    <script>
+      // Set this to your published store URL when ready
+      // Example: https://chromewebstore.google.com/detail/oddvision/XXXXXXXXXXXXXXX
+      window.ODDVISION_STORE_URL = "https://chromewebstore.google.com/detail/oddvision/EXTENSION_ID";
+    </script>
+    <script src="./script.js" defer></script>
+  </body>
+  </html>
+
+

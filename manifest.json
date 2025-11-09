@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Oddvision - AI Page Assistant",
+  "name": "Oddvision",
   "version": "1.0.0",
-  "description": "Extract text from any webpage and ask AI questions about the content through an intelligent overlay interface.",
+  "description": "Stealth overlay to capture and analyze any webpage with fast AI, via simple keyboard shortcuts.",
   "permissions": [
     "storage",
     "activeTab",
