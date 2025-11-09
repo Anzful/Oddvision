@@ -1,5 +1,6 @@
 // Oddvision Content Script
 // Handles text extraction, overlay injection, and AI communication
+// Config is loaded from config.js
 
 let overlayVisible = false;
 let extensionEnabled = true; // Always enabled now
@@ -39,7 +40,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-// Capture page context (triggered by Ctrl+Shift+C)
+// Capture page context (triggered by Ctrl+Shift+1)
 function capturePageContext() {
   pageContent = extractPageText();
   console.log('Oddvision: Captured', pageContent.length, 'characters from page');
@@ -48,7 +49,7 @@ function capturePageContext() {
   showNotification('📄 Page context captured!', 'success');
 }
 
-// Send context to AI (triggered by Ctrl+Shift+A)
+// Send context to AI (triggered by Ctrl+Shift+2)
 async function sendContextToAI() {
   if (isProcessing) {
     showNotification('⏳ Please wait for current request...', 'warning');
@@ -56,7 +57,7 @@ async function sendContextToAI() {
   }
   
   if (!pageContent || pageContent.length === 0) {
-    showNotification('❌ No context captured! Press Ctrl+Shift+C first.', 'error');
+    showNotification('❌ No context captured! Press Ctrl+Shift+1 first.', 'error');
     return;
   }
   
@@ -208,7 +209,7 @@ function createOverlay() {
   overlay.innerHTML = `
     <div class="oddvision-container">
       <div class="oddvision-header">
-        <h2>🔮 Oddvision AI Assistant</h2>
+        <h2>🔮 Oddvision</h2>
         <button class="oddvision-close" id="oddvision-close-btn" title="Close (Ctrl+Shift+Y)">×</button>
       </div>
       <div class="oddvision-content">
@@ -300,9 +301,8 @@ function displayAIResponse(response) {
   const contextInfo = document.createElement('div');
   contextInfo.className = 'oddvision-context-info';
   contextInfo.innerHTML = `
-    <div style="font-size: 12px; color: #666; margin-bottom: 16px; padding: 12px; background: #f5f5f5; border-radius: 8px;">
-      📄 Context: ${pageContent.length} characters captured<br>
-      🤖 AI Analysis ready
+    <div style="font-size: 11px; color: #777; margin-bottom: 12px; padding: 8px 10px; background: rgba(40, 40, 55, 0.4); border-radius: 6px; border: 1px solid rgba(70, 70, 90, 0.3);">
+      📄 ${pageContent.length} chars • 🤖 Ready
     </div>
   `;
   chatArea.appendChild(contextInfo);

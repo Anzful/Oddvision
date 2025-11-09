@@ -1,4 +1,6 @@
 // Oddvision Background Service Worker
+// Configuration is loaded from secrets.js
+importScripts('secrets.js');
 
 // Handle keyboard shortcut command
 chrome.commands.onCommand.addListener((command) => {
@@ -36,6 +38,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // AI API calls (no CORS restrictions here!)
 async function callAI(provider, apiKey, prompt) {
   switch (provider) {
+    case 'groq':
+      return await callGroq(apiKey, prompt);
     case 'huggingface':
       return await callHuggingFace(apiKey, prompt);
     case 'gemini':
@@ -57,23 +61,24 @@ async function callAI(provider, apiKey, prompt) {
   }
 }
 
-async function callHuggingFace(apiKey, prompt) {
-  // Using Hugging Face's new router API endpoint
-  const url = 'https://router.huggingface.co/hf-inference/v1/models/meta-llama/Llama-3.2-3B-Instruct';
-  
-  const response = await fetch(url, {
+async function callGroq(apiKey, prompt) {
+  // Groq - Super fast and free AI API with generous limits
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      inputs: prompt,
-      parameters: {
-        max_new_tokens: 500,
-        temperature: 0.7,
-        return_full_text: false
-      }
+      model: 'llama-3.3-70b-versatile', // Fast and capable free model
+      messages: [
+        { role: 'system', content: 'You are a helpful assistant that analyzes web page content and answers questions concisely and accurately.' },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.7,
+      max_tokens: 1024,
+      top_p: 1,
+      stream: false
     })
   });
   
@@ -82,7 +87,45 @@ async function callHuggingFace(apiKey, prompt) {
     let errorMsg = errorText;
     try {
       const errorJson = JSON.parse(errorText);
-      errorMsg = errorJson.error || errorText;
+      errorMsg = errorJson.error?.message || errorText;
+    } catch (e) {
+      // Keep errorText as is
+    }
+    throw new Error(`Groq API error: ${errorMsg}`);
+  }
+  
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
+
+async function callHuggingFace(apiKey, prompt) {
+  // Using Hugging Face Inference API with chat format
+  const url = 'https://api-inference.huggingface.co/models/meta-llama/Llama-3.2-3B-Instruct/v1/chat/completions';
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'meta-llama/Llama-3.2-3B-Instruct',
+      messages: [
+        { role: 'system', content: 'You are a helpful assistant that analyzes web content concisely.' },
+        { role: 'user', content: prompt }
+      ],
+      max_tokens: 800,
+      temperature: 0.7,
+      stream: false
+    })
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    let errorMsg = errorText;
+    try {
+      const errorJson = JSON.parse(errorText);
+      errorMsg = errorJson.error || errorJson.message || errorText;
     } catch (e) {
       // Keep errorText as is
     }
@@ -91,13 +134,18 @@ async function callHuggingFace(apiKey, prompt) {
   
   const data = await response.json();
   
-  // Handle different response formats
-  if (Array.isArray(data)) {
-    return data[0].generated_text || data[0];
-  } else if (data.generated_text) {
+  // Handle chat completion format
+  if (data.choices && data.choices[0] && data.choices[0].message) {
+    return data.choices[0].message.content;
+  }
+  
+  // Fallback for other formats
+  if (Array.isArray(data) && data[0]?.generated_text) {
+    return data[0].generated_text;
+  }
+  
+  if (data.generated_text) {
     return data.generated_text;
-  } else if (typeof data === 'string') {
-    return data;
   }
   
   throw new Error('Unexpected response format from Hugging Face');
@@ -223,9 +271,20 @@ async function callOllama(prompt) {
   return data.response;
 }
 
-// Initialize extension state on install
+// Initialize extension state on install with default config
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.storage.local.set({ enabled: false });
-  console.log('Oddvision: Extension installed');
+  chrome.storage.local.set({ enabled: true }); // Auto-enable on install
+  
+  // Set default provider and API key from config.js
+  chrome.storage.sync.get(['provider', 'apiKey'], (result) => {
+    if (!result.provider || !result.apiKey) {
+      chrome.storage.sync.set({
+        provider: OddvisionConfig.defaultProvider,
+        apiKey: OddvisionConfig.apiKey
+      }, () => {
+        console.log('Oddvision: Extension installed with default config');
+      });
+    }
+  });
 });
 

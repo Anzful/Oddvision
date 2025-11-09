@@ -10,12 +10,12 @@ const notification = document.getElementById('notification');
 
 // Provider information
 const providerInfo = {
-  huggingface: {
-    name: 'Hugging Face (Mistral-7B)',
+  groq: {
+    name: 'Groq (Llama 3.3 70B) ⭐ RECOMMENDED',
     badge: 'free',
-    description: 'Free access to Mistral-7B-Instruct model via Hugging Face API.',
-    details: 'Free tier available. Fast and capable 7B parameter model.',
-    apiLink: 'https://huggingface.co/settings/tokens',
+    description: 'Lightning-fast FREE AI with Llama 3.3 70B. Best free option available!',
+    details: 'Free tier: 30 requests/minute, 14,400 requests/day. Ultra-fast inference!',
+    apiLink: 'https://console.groq.com/keys',
     needsKey: true
   },
   gemini: {
@@ -24,6 +24,14 @@ const providerInfo = {
     description: 'Fast and free AI from Google with generous rate limits.',
     details: 'Free tier: 15 requests/minute, 1500 requests/day',
     apiLink: 'https://aistudio.google.com/app/apikey',
+    needsKey: true
+  },
+  huggingface: {
+    name: 'Hugging Face (Llama 3.2)',
+    badge: 'free',
+    description: 'Free access to Llama 3.2 3B model via Hugging Face API.',
+    details: 'Free tier available. Lightweight and fast model.',
+    apiLink: 'https://huggingface.co/settings/tokens',
     needsKey: true
   },
   'openai-mini': {

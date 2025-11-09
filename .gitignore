@@ -1,33 +1,12 @@
-# Dependencies
+# Don't commit your API key to git!
+secrets.js
+.env
+.env.local
+
+# Node modules if you generate icons
 node_modules/
+package-lock.json
 
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-venv/
-env/
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
+# OS files
 .DS_Store
 Thumbs.db
-desktop.ini
-
-# Logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-
-# Temporary files
-*.tmp
-*.temp
-

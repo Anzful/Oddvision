@@ -14,6 +14,8 @@
     "https://api.anthropic.com/*",
     "https://openrouter.ai/*",
     "https://router.huggingface.co/*",
+    "https://api-inference.huggingface.co/*",
+    "https://api.groq.com/*",
     "http://localhost:11434/*"
   ],
   "background": {
@@ -47,15 +49,15 @@
   "commands": {
     "capture-context": {
       "suggested_key": {
-        "default": "Ctrl+Shift+C",
-        "mac": "Command+Shift+C"
+        "default": "Ctrl+Shift+1",
+        "mac": "Command+Shift+1"
       },
       "description": "Capture page context"
     },
     "ask-ai": {
       "suggested_key": {
-        "default": "Ctrl+Shift+A",
-        "mac": "Command+Shift+A"
+        "default": "Ctrl+Shift+2",
+        "mac": "Command+Shift+2"
       },
       "description": "Send context to AI"
     },
