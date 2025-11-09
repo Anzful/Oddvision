@@ -2,6 +2,14 @@
 // Configuration is loaded from secrets.js
 importScripts('secrets.js');
 
+// Request queue for rate limiting
+const requestQueue = [];
+let isProcessingQueue = false;
+const RATE_LIMIT_DELAY = 1200; // 1.2 seconds between requests (50 req/min max)
+const MAX_CONCURRENT = 2; // Process up to 2 requests simultaneously without queue
+let totalProcessed = 0;
+let lastRequestTime = 0;
+
 // Handle keyboard shortcut command
 chrome.commands.onCommand.addListener((command) => {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -27,15 +35,99 @@ chrome.commands.onCommand.addListener((command) => {
   });
 });
 
-// Handle API calls from content script with automatic failover
+// Handle API calls from content script with automatic failover + queue
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'callAI') {
-    callAIWithFailover(request.prompt)
-      .then(response => sendResponse({ success: true, response }))
-      .catch(error => sendResponse({ success: false, error: error.message }));
+    // Add to queue instead of calling immediately
+    addToQueue(request.prompt, sendResponse, sender.tab?.id);
     return true; // Keep channel open for async response
   }
+  
+  // Get queue count (minimal)
+  if (request.action === 'getQueueCount') {
+    sendResponse({ count: requestQueue.length });
+    return true;
+  }
 });
+
+// Add request to queue and process
+async function addToQueue(prompt, sendResponse, tabId) {
+  const now = Date.now();
+  const timeSinceLastRequest = now - lastRequestTime;
+  
+  // Always add to queue first
+  requestQueue.push({ prompt, sendResponse, tabId, timestamp: now });
+  console.log(`🔮 Oddvision: Queued request #${totalProcessed + requestQueue.length} (${requestQueue.length} in queue)`);
+  
+  // Notify all tabs about queue update
+  notifyQueueUpdate();
+  
+  // Smart queueing: If we're under rate limit and not already processing, start immediately
+  if (!isProcessingQueue && timeSinceLastRequest >= RATE_LIMIT_DELAY) {
+    console.log(`⚡ Oddvision: Starting queue processing immediately`);
+    lastRequestTime = now;
+    processQueue();
+  } else if (!isProcessingQueue) {
+    // Need to wait for rate limit
+    processQueue();
+  }
+}
+
+// Notify all tabs about queue count
+function notifyQueueUpdate() {
+  chrome.tabs.query({}, (tabs) => {
+    tabs.forEach(tab => {
+      chrome.tabs.sendMessage(tab.id, { 
+        action: 'queueUpdate', 
+        count: requestQueue.length 
+      }).catch(() => {});
+    });
+  });
+}
+
+// Process single request
+async function processRequest(prompt, sendResponse, tabId, timestamp) {
+  const waitTime = ((Date.now() - timestamp) / 1000).toFixed(1);
+  totalProcessed++;
+  
+  try {
+    if (waitTime > 0.1) {
+      console.log(`⚡ Oddvision: Processing request #${totalProcessed} (waited ${waitTime}s)`);
+    }
+    const result = await callAIWithFailover(prompt);
+    sendResponse({ success: true, response: result.response, model: result.model });
+    console.log(`✅ Oddvision: Completed request #${totalProcessed} via ${result.model}`);
+  } catch (error) {
+    console.error(`❌ Oddvision: Failed request #${totalProcessed}:`, error.message);
+    sendResponse({ success: false, error: error.message });
+  }
+}
+
+// Process queue with rate limiting
+async function processQueue() {
+  if (isProcessingQueue || requestQueue.length === 0) return;
+  
+  isProcessingQueue = true;
+  
+  while (requestQueue.length > 0) {
+    const { prompt, sendResponse, tabId, timestamp } = requestQueue.shift();
+    
+    // Notify all tabs about queue update
+    notifyQueueUpdate();
+    
+    await processRequest(prompt, sendResponse, tabId, timestamp);
+    
+    // Rate limiting: Wait before next request
+    if (requestQueue.length > 0) {
+      await new Promise(resolve => setTimeout(resolve, RATE_LIMIT_DELAY));
+      lastRequestTime = Date.now();
+    }
+  }
+  
+  isProcessingQueue = false;
+  notifyQueueUpdate();
+  console.log(`🎉 Oddvision: Queue cleared! Total processed: ${totalProcessed}`);
+}
 
 // Automatic failover: Try providers in order until one works
 async function callAIWithFailover(prompt) {
@@ -61,7 +153,7 @@ async function callAIWithFailover(prompt) {
       console.log(`Oddvision: Trying ${provider.name}...`);
       const response = await provider.fn(provider.key, prompt);
       console.log(`Oddvision: ✅ Success with ${provider.name}`);
-      return response;
+      return { response, model: provider.name };
     } catch (error) {
       console.log(`Oddvision: ❌ ${provider.name} failed:`, error.message);
       lastError = error;
@@ -165,7 +257,7 @@ chrome.runtime.onInstalled.addListener(() => {
     
     if (Object.keys(updates).length > 0) {
       chrome.storage.sync.set(updates, () => {
-        console.log('Oddvision: Extension installed with 2-provider failover');
+        console.log('Oddvision: Extension installed with queue-based rate limiting');
       });
     }
   });

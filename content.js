@@ -26,20 +26,34 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-// Listen for keyboard shortcuts
+// Listen for keyboard shortcuts and queue updates
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'capture-context') {
-    // Capture page context silently
     capturePageContext();
   } else if (request.action === 'ask-ai') {
-    // Send captured context to AI
     sendContextToAI();
   } else if (request.action === 'toggle-overlay') {
-    // Toggle overlay visibility
     toggleOverlay();
   } else if (request.action === 'toggle-text-color') {
-    // Toggle text color
     toggleTextColor();
+  } else if (request.action === 'queueUpdate') {
+    // Update indicator dot with queue count
+    const existing = document.querySelector('#oddvision-indicator-dot');
+    if (existing && request.count > 0) {
+      // Update or add counter
+      let counter = existing.querySelector('.oddvision-indicator-counter');
+      if (!counter && request.count > 0) {
+        counter = document.createElement('span');
+        counter.className = 'oddvision-indicator-counter';
+        existing.appendChild(counter);
+      }
+      if (counter) {
+        counter.textContent = request.count;
+        if (request.count === 0) {
+          counter.remove();
+        }
+      }
+    }
   }
 });
 
@@ -55,7 +69,6 @@ function capturePageContext() {
 // Send context to AI (triggered by Ctrl+Shift+2)
 async function sendContextToAI() {
   if (isProcessing) {
-    showNotification('⏳ Please wait for current request...', 'warning');
     return;
   }
   
@@ -65,8 +78,7 @@ async function sendContextToAI() {
   }
   
   isProcessing = true;
-  // Show green indicator dot
-  showIndicatorDot('green');
+  showIndicatorDot('green'); // Show dot immediately
   
   try {
     // Send just the context as the prompt
@@ -91,12 +103,19 @@ async function sendContextToAI() {
       );
     });
     
-    lastAIResponse = response;
-    console.log('Oddvision: AI response received');
+    // Handle response format
+    if (response && typeof response === 'object' && response.response) {
+      lastAIResponse = response.response;
+      const modelUsed = response.model || 'unknown';
+      console.log(`✨ Oddvision: AI response received from ${modelUsed.toUpperCase()}`);
+    } else {
+      lastAIResponse = response;
+      console.log(`✨ Oddvision: AI response received`);
+    }
     
     // If overlay is already visible, update it
     if (overlayVisible && overlayElement) {
-      displayAIResponse(response);
+      displayAIResponse(lastAIResponse);
     }
   } catch (error) {
     console.error('Oddvision AI Error:', error);
@@ -128,8 +147,8 @@ function showNotification(message, type = 'info') {
   }, 3000);
 }
 
-// Show small colored indicator dot
-function showIndicatorDot(color) {
+// Show small colored indicator dot with optional queue count
+function showIndicatorDot(color, queueCount = null) {
   // Remove existing indicator
   const existing = document.querySelector('#oddvision-indicator-dot');
   if (existing) {
@@ -140,13 +159,22 @@ function showIndicatorDot(color) {
   indicator.id = 'oddvision-indicator-dot';
   indicator.className = `oddvision-indicator-dot oddvision-indicator-${color}`;
   
+  // Add queue count if provided AND greater than 0
+  if (queueCount !== null && queueCount > 0) {
+    const counter = document.createElement('span');
+    counter.className = 'oddvision-indicator-counter';
+    counter.textContent = queueCount;
+    indicator.appendChild(counter);
+  }
+  
   document.body.appendChild(indicator);
   
-  // Auto-remove after 1 second
+  // Auto-remove after longer if showing queue
+  const duration = (queueCount !== null && queueCount > 0) ? 3000 : 1000;
   setTimeout(() => {
     indicator.classList.add('oddvision-indicator-fadeout');
     setTimeout(() => indicator.remove(), 300);
-  }, 1000);
+  }, duration);
 }
 
 // Extract all visible text from the page
@@ -359,6 +387,12 @@ function applyTextColor(color) {
     overlayElement.classList.remove('oddvision-text-black');
     if (colorToggleBtn) colorToggleBtn.textContent = '⚫';
   }
+}
+
+// Update queue counter (now on indicator dot, not overlay)
+function updateQueueCounter(count) {
+  // Queue updates now shown via indicator dot when Alt+2 is pressed
+  // This function kept for compatibility but does nothing
 }
 
 // All API calls now handled by background.js (no CORS restrictions!)

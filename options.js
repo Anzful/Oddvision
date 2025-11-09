@@ -9,13 +9,13 @@ const settingsForm = document.getElementById('settings-form');
 const notification = document.getElementById('notification');
 const overlayPositionSelect = document.getElementById('overlay-position');
 
-// Provider information - Only FREE options with automatic failover
+// Provider information - Queue-based rate limiting system
 const providerInfo = {
   groq: {
     name: 'Groq (Llama 3.3 70B) ⚡ PRIMARY',
     badge: 'free',
-    description: 'Lightning-fast FREE AI with Llama 3.3 70B. Best free option!',
-    details: 'Free: 30 requests/min, 14,400/day. Ultra-fast inference!',
+    description: 'Lightning-fast FREE AI with Llama 3.3 70B. Queue-managed for rate limits.',
+    details: 'Free: 30 requests/min, 14,400/day. Smart queue handles bursts!',
     apiLink: 'https://console.groq.com/keys',
     needsKey: true,
     priority: 1
@@ -24,7 +24,7 @@ const providerInfo = {
     name: 'OpenRouter (MiniMax M2) 🆓 BACKUP',
     badge: 'free',
     description: 'Free MiniMax M2 10B model. Auto-used if Groq fails.',
-    details: 'Free tier: 200 requests/day, 197K context',
+    details: 'Free tier: 200 requests/day, 20 req/min. Queue-managed!',
     apiLink: 'https://openrouter.ai/keys',
     needsKey: true,
     priority: 2

@@ -63,13 +63,33 @@
   position: fixed;
   top: 20px;
   right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 2147483646;
+  pointer-events: none;
+}
+
+#oddvision-indicator-dot::before {
+  content: '';
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  z-index: 2147483646; /* Just below overlay */
   animation: oddvision-indicator-pop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-  pointer-events: none;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.oddvision-indicator-counter {
+  font-size: 10px;
+  font-weight: 600;
+  color: white;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 2px 7px;
+  border-radius: 10px;
+  white-space: nowrap;
+  min-width: 18px;
+  text-align: center;
+  animation: oddvision-indicator-pop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
 @keyframes oddvision-indicator-pop {
@@ -97,12 +117,12 @@
   }
 }
 
-.oddvision-indicator-yellow {
+.oddvision-indicator-yellow::before {
   background: #ffd700;
   box-shadow: 0 2px 8px rgba(255, 215, 0, 0.5);
 }
 
-.oddvision-indicator-green {
+.oddvision-indicator-green::before {
   background: #4caf50;
   box-shadow: 0 2px 8px rgba(76, 175, 80, 0.5);
 }

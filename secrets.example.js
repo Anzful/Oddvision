@@ -7,7 +7,7 @@ var OddvisionConfig = {
   // Get key from: https://console.groq.com/keys
   apiKey: 'YOUR_GROQ_KEY_HERE',
   
-  // BACKUP: OpenRouter (200 requests/day on free models) 🆓
+  // BACKUP: OpenRouter (200 requests/day, 20 req/min on free models) 🆓
   // Get key from: https://openrouter.ai/keys
   openrouterKey: 'YOUR_OPENROUTER_KEY_HERE'
 };
