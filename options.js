@@ -9,84 +9,30 @@ const settingsForm = document.getElementById('settings-form');
 const notification = document.getElementById('notification');
 const overlayPositionSelect = document.getElementById('overlay-position');
 
-// Provider information
+// Provider information - Only FREE options with automatic failover
 const providerInfo = {
   groq: {
-    name: 'Groq (Llama 3.3 70B) ⭐ RECOMMENDED',
+    name: 'Groq (Llama 3.3 70B) ⚡ PRIMARY',
     badge: 'free',
-    description: 'Lightning-fast FREE AI with Llama 3.3 70B. Best free option available!',
-    details: 'Free tier: 30 requests/minute, 14,400 requests/day. Ultra-fast inference!',
+    description: 'Lightning-fast FREE AI with Llama 3.3 70B. Best free option!',
+    details: 'Free: 30 requests/min, 14,400/day. Ultra-fast inference!',
     apiLink: 'https://console.groq.com/keys',
-    needsKey: true
-  },
-  gemini: {
-    name: 'Google Gemini 1.5 Flash',
-    badge: 'free',
-    description: 'Fast and free AI from Google with generous rate limits.',
-    details: 'Free tier: 15 requests/minute, 1500 requests/day',
-    apiLink: 'https://aistudio.google.com/app/apikey',
-    needsKey: true
-  },
-  huggingface: {
-    name: 'Hugging Face (Llama 3.2)',
-    badge: 'free',
-    description: 'Free access to Llama 3.2 3B model via Hugging Face API.',
-    details: 'Free tier available. Lightweight and fast model.',
-    apiLink: 'https://huggingface.co/settings/tokens',
-    needsKey: true
-  },
-  'openai-mini': {
-    name: 'OpenAI GPT-4o-mini',
-    badge: 'paid',
-    description: 'Cost-effective OpenAI model with great performance.',
-    details: 'Paid service with token-based pricing (~$0.15/1M input tokens)',
-    apiLink: 'https://platform.openai.com/api-keys',
-    needsKey: true
-  },
-  'openai-4o': {
-    name: 'OpenAI GPT-4o',
-    badge: 'paid',
-    description: 'Most advanced OpenAI model with superior capabilities.',
-    details: 'Paid service with token-based pricing (~$2.50/1M input tokens)',
-    apiLink: 'https://platform.openai.com/api-keys',
-    needsKey: true
-  },
-  'claude-sonnet': {
-    name: 'Claude 3.5 Sonnet',
-    badge: 'paid',
-    description: 'Anthropic\'s most capable model with excellent reasoning.',
-    details: 'Paid service with token-based pricing (~$3/1M input tokens)',
-    apiLink: 'https://console.anthropic.com/settings/keys',
-    needsKey: true
-  },
-  'claude-haiku': {
-    name: 'Claude 3.5 Haiku',
-    badge: 'paid',
-    description: 'Fast and affordable Claude model for quick responses.',
-    details: 'Paid service with token-based pricing (~$0.80/1M input tokens)',
-    apiLink: 'https://console.anthropic.com/settings/keys',
-    needsKey: true
+    needsKey: true,
+    priority: 1
   },
   openrouter: {
-    name: 'OpenRouter',
+    name: 'OpenRouter (MiniMax M2) 🆓 BACKUP',
     badge: 'free',
-    description: 'Access multiple AI models through one API. Includes free options.',
-    details: 'Free and paid models available. Defaults to Gemini Flash (free)',
+    description: 'Free MiniMax M2 10B model. Auto-used if Groq fails.',
+    details: 'Free tier: 200 requests/day, 197K context',
     apiLink: 'https://openrouter.ai/keys',
-    needsKey: true
-  },
-  ollama: {
-    name: 'Ollama (Local AI)',
-    badge: 'local',
-    description: 'Run AI models locally on your computer. No API key needed!',
-    details: 'Requires Ollama installed and running on http://localhost:11434',
-    apiLink: 'https://ollama.ai/download',
-    needsKey: false
+    needsKey: true,
+    priority: 2
   }
 };
 
 // Load saved settings
-chrome.storage.sync.get(['provider', 'apiKey', 'overlayPosition'], (result) => {
+chrome.storage.sync.get(['provider', 'apiKey', 'overlayPosition', 'groqKey', 'openrouterKey'], (result) => {
   if (result.provider) {
     providerSelect.value = result.provider;
     updateProviderInfo(result.provider);

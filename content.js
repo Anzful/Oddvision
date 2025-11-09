@@ -60,19 +60,7 @@ async function sendContextToAI() {
   }
   
   if (!pageContent || pageContent.length === 0) {
-    showNotification('❌ No context captured! Press Ctrl+Shift+1 first.', 'error');
-    return;
-  }
-  
-  // Get settings
-  const settings = await chrome.storage.sync.get(['provider', 'apiKey']);
-  if (!settings.provider) {
-    showNotification('❌ Configure AI provider in extension options', 'error');
-    return;
-  }
-  
-  if (settings.provider !== 'ollama' && !settings.apiKey) {
-    showNotification('❌ Add API key in extension options', 'error');
+    showNotification('❌ No context captured! Press Alt+1 first.', 'error');
     return;
   }
   
@@ -84,13 +72,11 @@ async function sendContextToAI() {
     // Send just the context as the prompt
     const prompt = `Please analyze and summarize the following webpage content:\n\n${pageContent}`;
     
-    // Call background script (no CORS restrictions!)
+    // Call background script with automatic failover (no CORS restrictions!)
     const response = await new Promise((resolve, reject) => {
       chrome.runtime.sendMessage(
         {
           action: 'callAI',
-          provider: settings.provider,
-          apiKey: settings.apiKey,
           prompt: prompt
         },
         (response) => {

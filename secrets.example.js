@@ -1,14 +1,13 @@
 // Oddvision Secrets Template
-// Copy this file to 'secrets.js' and add your own API key
+// Copy this file to 'secrets.js' and add your API keys
+// Automatic failover: If one fails, the next one is used automatically!
 
 var OddvisionConfig = {
-  // Choose your provider: 'groq', 'gemini', 'huggingface', 'openai-mini', etc.
-  defaultProvider: 'groq',
+  // PRIMARY: Groq (30 requests/min, 14,400/day) - FASTEST ⚡
+  // Get key from: https://console.groq.com/keys
+  apiKey: 'YOUR_GROQ_KEY_HERE',
   
-  // Get your free API key from:
-  // Groq: https://console.groq.com/keys (RECOMMENDED - 14,400/day free)
-  // Gemini: https://aistudio.google.com/app/apikey (1,500/day free)
-  // HuggingFace: https://huggingface.co/settings/tokens (free tier available)
-  apiKey: 'YOUR_API_KEY_HERE'
+  // BACKUP: OpenRouter (200 requests/day on free models) 🆓
+  // Get key from: https://openrouter.ai/keys
+  openrouterKey: 'YOUR_OPENROUTER_KEY_HERE'
 };
-
