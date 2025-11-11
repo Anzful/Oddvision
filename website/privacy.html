@@ -32,23 +32,26 @@
                 <h3>Website Content</h3>
                 <p>
                     When you press <strong>Alt+1</strong>, Oddvision captures visible text from the current webpage. 
-                    This text is sent to your chosen AI provider (Groq or OpenRouter) for analysis only when you press <strong>Alt+2</strong>.
+                    This text is sent to AI providers (Groq or OpenRouter) for analysis only when you press <strong>Alt+2</strong>.
                 </p>
                 <ul>
                     <li><strong>Trigger:</strong> Manual only (keyboard shortcut)</li>
-                    <li><strong>Storage:</strong> Temporarily held in memory until AI responds</li>
-                    <li><strong>Sharing:</strong> Sent only to your selected AI provider using your API key</li>
+                    <li><strong>Storage:</strong> Temporarily held in memory until AI responds, then immediately discarded</li>
+                    <li><strong>Sharing:</strong> Sent only to Groq or OpenRouter APIs using shared API credentials</li>
+                    <li><strong>No server storage:</strong> We don't store, log, or save any captured content on our servers</li>
                 </ul>
 
-                <h3>API Keys</h3>
+                <h3>How AI Providers Receive Data</h3>
                 <p>
-                    You provide your own API keys for Groq and/or OpenRouter. These keys are:
+                    Oddvision uses shared API keys (provided by the extension) to send your captured text to free AI services. 
+                    This means:
                 </p>
                 <ul>
-                    <li>Stored locally in your browser using Chrome's <code>chrome.storage.local</code></li>
-                    <li>Never transmitted to any server other than the AI provider you're authenticating with</li>
-                    <li>Never shared with Oddvision developers or third parties</li>
-                    <li>Fully under your control (you can delete them anytime in extension settings)</li>
+                    <li>AI providers (Groq, OpenRouter) receive the text you capture for processing</li>
+                    <li>These providers process requests according to their own privacy policies (see links below)</li>
+                    <li>The extension uses shared credentials, so providers cannot identify individual users</li>
+                    <li>Responses return directly to your browser and are displayed in the overlay</li>
+                    <li>No data is stored by Oddvision—everything stays between your browser and the AI provider</li>
                 </ul>
             </section>
 
@@ -86,7 +89,11 @@
                     <strong>Captured text:</strong> Held in memory only while processing your request. Discarded immediately after AI responds.
                 </p>
                 <p>
-                    <strong>API keys and settings:</strong> Stored locally in your browser until you remove them or uninstall the extension.
+                    <strong>User preferences:</strong> Overlay position and display settings are stored locally in your browser using <code>chrome.storage.local</code>. 
+                    These are deleted when you uninstall the extension.
+                </p>
+                <p>
+                    <strong>No external storage:</strong> Oddvision does not use databases, servers, or cloud storage. Everything stays in your browser.
                 </p>
             </section>
 
@@ -128,9 +135,9 @@
                 <h2>Your Rights</h2>
                 <p>You have full control over your data:</p>
                 <ul>
-                    <li><strong>Delete API keys:</strong> Go to extension settings and clear your keys</li>
                     <li><strong>Stop using the extension:</strong> Disable or uninstall from <code>chrome://extensions</code></li>
-                    <li><strong>Review stored data:</strong> Open Chrome DevTools → Application → Storage → Extensions</li>
+                    <li><strong>Review stored data:</strong> Open Chrome DevTools → Application → Storage → Extensions (only overlay preferences are stored)</li>
+                    <li><strong>Don't capture sensitive content:</strong> Only press Alt+1 when you're comfortable sharing the visible text with AI providers</li>
                 </ul>
             </section>
 
