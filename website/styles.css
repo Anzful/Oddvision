@@ -242,6 +242,14 @@ html, body {
   backdrop-filter: blur(8px);
 }
 .ov-footer-inner { display: flex; align-items: center; justify-content: space-between; }
+.ov-footer-right { display: flex; align-items: center; gap: 16px; }
+.ov-footer-link {
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 13px;
+  transition: color 0.3s ease;
+}
+.ov-footer-link:hover { color: var(--text); }
 .ov-footer-dim { color: var(--text-dim); font-size: 13px; }
 
 /* Reveal on scroll */
@@ -252,6 +260,125 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   .reveal { opacity: 1 !important; transform: none !important; }
   .ov-hero-bg { filter: none; }
+}
+
+/* PRIVACY PAGE */
+.ov-privacy-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 120px 20px 60px;
+}
+.ov-privacy-container {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 48px;
+  backdrop-filter: blur(20px);
+}
+.ov-privacy-container h1 {
+  font-size: 2.5rem;
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.ov-privacy-date {
+  color: var(--text-dim);
+  margin-bottom: 32px;
+  font-size: 0.95rem;
+}
+.ov-privacy-section {
+  margin-top: 40px;
+}
+.ov-privacy-section h2 {
+  font-size: 1.8rem;
+  margin-bottom: 16px;
+  color: var(--text);
+}
+.ov-privacy-section h3 {
+  font-size: 1.3rem;
+  margin-top: 24px;
+  margin-bottom: 12px;
+  color: rgba(255, 255, 255, 0.9);
+}
+.ov-privacy-section p {
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 16px;
+}
+.ov-privacy-section ul {
+  margin: 16px 0;
+  padding-left: 24px;
+}
+.ov-privacy-section ul li {
+  margin-bottom: 8px;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.8);
+}
+.ov-privacy-section code {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+  color: #a78bfa;
+}
+.ov-privacy-section a {
+  color: #a78bfa;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(167, 139, 250, 0.3);
+  transition: all 0.3s ease;
+}
+.ov-privacy-section a:hover {
+  color: #c4b5fd;
+  border-bottom-color: #c4b5fd;
+}
+.ov-permissions-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 24px 0;
+}
+.ov-permissions-table th,
+.ov-permissions-table td {
+  padding: 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.ov-permissions-table th {
+  background: rgba(255, 255, 255, 0.05);
+  font-weight: 600;
+  color: var(--text);
+}
+.ov-permissions-table td {
+  color: rgba(255, 255, 255, 0.8);
+}
+.ov-permissions-table code {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+  color: #a78bfa;
+}
+
+@media (max-width: 768px) {
+  .ov-privacy-page {
+    padding: 100px 16px 48px;
+  }
+  .ov-privacy-container {
+    padding: 32px 24px;
+  }
+  .ov-privacy-container h1 {
+    font-size: 2rem;
+  }
+  .ov-permissions-table {
+    font-size: 0.9rem;
+  }
+  .ov-permissions-table th,
+  .ov-permissions-table td {
+    padding: 12px 8px;
+  }
 }
 
 
