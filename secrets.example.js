@@ -1,5 +1,5 @@
 // Oddvision Secrets Template
-// Copy this file to 'secrets.js' and add your API keys
+// Copy this file to 'secrets.js' and add the extension's default API keys
 // Automatic failover: If one fails, the next one is used automatically!
 
 var OddvisionConfig = {
