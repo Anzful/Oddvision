@@ -5,8 +5,7 @@
   "description": "Stealth overlay to capture and analyze any webpage with fast AI, via simple keyboard shortcuts.",
   "permissions": [
     "storage",
-    "activeTab",
-    "scripting"
+    "activeTab"
   ],
   "host_permissions": [
     "https://api.groq.com/*",
