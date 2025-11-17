@@ -130,14 +130,12 @@ async function processQueue() {
 }
 
 // Automatic failover: Try providers in order until one works
+// Uses static, preconfigured API keys from secrets.js (OddvisionConfig)
 async function callAIWithFailover(prompt) {
-  // Get all API keys from storage
-  const keys = await chrome.storage.sync.get(['groqKey', 'openrouterKey']);
-  
-  // Define providers in priority order
+  // Define providers in priority order, using built-in credentials
   const providers = [
-    { name: 'groq', key: keys.groqKey, fn: callGroq },
-    { name: 'openrouter', key: keys.openrouterKey, fn: callOpenRouter }
+    { name: 'groq', key: OddvisionConfig.apiKey, fn: callGroq },
+    { name: 'openrouter', key: OddvisionConfig.openrouterKey, fn: callOpenRouter }
   ];
   
   let lastError = null;
@@ -162,7 +160,7 @@ async function callAIWithFailover(prompt) {
   }
   
   // All providers failed
-  throw new Error(`All providers failed. Last error: ${lastError?.message || 'No API keys configured'}`);
+  throw new Error(`All providers failed. Last error: ${lastError?.message || 'No API provider available'}`);
 }
 
 // AI API calls (no CORS restrictions here!) - Only FREE providers
@@ -242,24 +240,9 @@ async function callOpenRouter(apiKey, prompt) {
 
 // Initialize extension state on install with default config
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.storage.local.set({ enabled: true }); // Auto-enable on install
-  
-  // Set all API keys from secrets.js
-  chrome.storage.sync.get(['groqKey', 'openrouterKey'], (result) => {
-    const updates = {};
-    
-    if (!result.groqKey && OddvisionConfig.apiKey) {
-      updates.groqKey = OddvisionConfig.apiKey;
-    }
-    if (!result.openrouterKey && OddvisionConfig.openrouterKey) {
-      updates.openrouterKey = OddvisionConfig.openrouterKey;
-    }
-    
-    if (Object.keys(updates).length > 0) {
-      chrome.storage.sync.set(updates, () => {
-        console.log('Oddvision: Extension installed with queue-based rate limiting');
-      });
-    }
+  // Auto-enable on install; no API keys are stored in chrome.storage
+  chrome.storage.local.set({ enabled: true }, () => {
+    console.log('Oddvision: Extension installed with default settings');
   });
 });
 

@@ -3,15 +3,19 @@
 // Config is loaded from config.js
 
 let overlayVisible = false;
-let extensionEnabled = true; // Always enabled now
+let extensionEnabled = true; // Controlled via popup toggle
 let pageContent = ''; // Stores captured page context
 let lastAIResponse = ''; // Stores last AI response
 let overlayElement = null;
 let isProcessing = false; // Prevent multiple simultaneous requests
 
-// Check if extension is enabled on load
+// Check if extension is enabled on load (default to true if unset)
 chrome.storage.local.get(['enabled'], (result) => {
-  extensionEnabled = result.enabled || false;
+  if (typeof result.enabled === 'boolean') {
+    extensionEnabled = result.enabled;
+  } else {
+    extensionEnabled = true;
+  }
 });
 
 // Listen for messages from popup
@@ -28,6 +32,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 // Listen for keyboard shortcuts and queue updates
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  // When disabled, ignore all user-triggered actions but still allow queue updates
+  if (!extensionEnabled && request.action !== 'queueUpdate') {
+    return;
+  }
+
   if (request.action === 'capture-context') {
     capturePageContext();
   } else if (request.action === 'ask-ai') {
@@ -57,8 +66,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-// Capture page context (triggered by Ctrl+Shift+1)
+// Capture page context (triggered by Alt+1)
 function capturePageContext() {
+  if (!extensionEnabled) {
+    showNotification('Oddvision is disabled in the popup.', 'error');
+    return;
+  }
+
   pageContent = extractPageText();
   console.log('Oddvision: Captured', pageContent.length, 'characters from page');
   
@@ -66,8 +80,13 @@ function capturePageContext() {
   showIndicatorDot('yellow');
 }
 
-// Send context to AI (triggered by Ctrl+Shift+2)
+// Send context to AI (triggered by Alt+2)
 async function sendContextToAI() {
+  if (!extensionEnabled) {
+    showNotification('Oddvision is disabled in the popup.', 'error');
+    return;
+  }
+
   if (isProcessing) {
     return;
   }

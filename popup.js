@@ -4,9 +4,9 @@ const enableToggle = document.getElementById('enable-toggle');
 const statusText = document.getElementById('status-text');
 const settingsBtn = document.getElementById('settings-btn');
 
-// Load current state
+// Load current state (default to enabled if unset)
 chrome.storage.local.get(['enabled'], (result) => {
-  const enabled = result.enabled || false;
+  const enabled = (typeof result.enabled === 'boolean') ? result.enabled : true;
   enableToggle.checked = enabled;
   updateStatus(enabled);
 });
