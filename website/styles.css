@@ -19,7 +19,7 @@ html, body {
               radial-gradient(1000px 700px at 15% 10%, rgba(34, 211, 238, 0.09), transparent 60%),
               var(--bg);
   color: var(--text);
-  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
   line-height: 1.55;
   scroll-behavior: smooth;
 }
@@ -105,6 +105,20 @@ html, body {
   background: linear-gradient(135deg, var(--accent), #5b21b6);
   color: white;
   box-shadow: 0 6px 24px rgba(124, 58, 237, 0.35);
+  position: relative;
+  overflow: hidden;
+}
+.ov-btn--primary::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: linear-gradient(to right, transparent, rgba(255,255,255,0.2), transparent);
+  transform: translateX(-100%);
+  animation: shine 3s infinite;
+}
+@keyframes shine {
+  0%, 80% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 .ov-btn--ghost:hover { background: rgba(255, 255, 255, 0.06); }
 .ov-btn:hover { transform: translateY(-1px); }
@@ -125,19 +139,67 @@ html, body {
   z-index: -1;
 }
 .ov-hero-title {
-  margin: 0 0 10px;
+  margin: 0 0 16px;
   font-weight: 900;
   letter-spacing: -0.02em;
-  font-size: clamp(28px, 5vw, 48px);
+  font-size: clamp(32px, 6vw, 56px);
+  background: linear-gradient(135deg, #fff 0%, #a78bfa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 30px rgba(124, 58, 237, 0.3);
 }
 .ov-hero-subtitle {
-  margin: 0 0 22px;
+  margin: 0 0 32px;
   color: var(--text-dim);
-  font-size: 16px;
+  font-size: 18px;
+  max-width: 600px;
+  line-height: 1.6;
 }
 .ov-cta { display: flex; gap: 12px; margin: 20px 0; }
-.ov-kbd { display: flex; flex-wrap: wrap; gap: 12px; color: var(--text-dim); font-weight: 600; font-size: 13px; margin-top: 4px; }
-.ov-kbd kbd { background: rgba(255, 255, 255, 0.06); border: 1px solid var(--border); padding: 2px 6px; border-radius: 6px; font-family: inherit; }
+
+.ov-kbd-grid {
+  display: flex;
+  gap: 16px;
+  margin-top: 32px;
+  flex-wrap: wrap;
+}
+.ov-kbd-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+  transition: all 0.2s ease;
+}
+.ov-kbd-item:hover {
+  border-color: var(--accent);
+  background: rgba(124, 58, 237, 0.1);
+  color: white;
+  transform: translateY(-2px);
+}
+.ov-kbd-item kbd {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: inherit;
+  color: white;
+  min-width: 24px;
+  text-align: center;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.2);
+}
+.ov-kbd-label { margin-left: 4px; }
+@media (max-width: 600px) {
+  .ov-cta { flex-direction: column; }
+  .ov-btn { width: 100%; justify-content: center; }
+  .ov-kbd-grid { justify-content: flex-start; }
+}
 
 /* Sections */
 .ov-section { padding: 64px 0; }
@@ -156,37 +218,132 @@ html, body {
 
 .ov-card {
   border: 1px solid var(--border);
-  background: var(--panel);
-  border-radius: 14px;
-  padding: 18px;
-  backdrop-filter: blur(10px);
-  transition: transform .2s ease, border-color .25s ease, box-shadow .25s ease;
+  background: rgba(20, 20, 35, 0.6);
+  border-radius: 16px;
+  padding: 24px;
+  backdrop-filter: blur(12px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.ov-card:hover { transform: translateY(-2px); border-color: rgba(124,58,237,.35); box-shadow: 0 16px 48px rgba(0,0,0,.28); }
+.ov-card:hover {
+  transform: translateY(-5px);
+  border-color: rgba(124,58,237,0.5);
+  box-shadow: 0 20px 40px -10px rgba(124,58,237,0.15);
+  background: rgba(25, 25, 40, 0.8);
+}
 .ov-card-icon {
-  width: 40px; height: 40px; border-radius: 10px;
+  width: 48px; height: 48px; border-radius: 12px;
   display: inline-flex; align-items: center; justify-content: center;
-  background: rgba(255,255,255,.06);
-  border: 1px solid var(--border);
-  margin-bottom: 10px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+  border: 1px solid rgba(255,255,255,0.1);
+  margin-bottom: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
-.ov-card-icon svg { width: 22px; height: 22px; stroke: var(--accent-2); stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
-.ov-card h3 { margin: 0 0 6px; font-size: 18px; }
-.ov-card p { margin: 0; color: var(--text-dim); font-size: 14px; }
+.ov-card-icon i {
+  font-size: 24px;
+  color: var(--accent-2);
+}
+.ov-card h3 { margin: 0 0 8px; font-size: 18px; font-weight: 700; color: #fff; }
+.ov-card p { margin: 0; color: var(--text-dim); font-size: 15px; line-height: 1.6; }
 
 /* Steps */
-.ov-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
-.ov-step-num {
-  width: 30px; height: 30px; border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent), #5b21b6);
-  display: inline-flex; align-items: center; justify-content: center;
-  font-weight: 800;
-  margin-right: 10px;
+.ov-steps-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  position: relative;
+  margin-top: 20px;
 }
-.ov-step-body h3 { margin: 0 0 6px; font-size: 18px; }
-.ov-step-body p { margin: 0; color: var(--text-dim); }
-.ov-steps-mini { margin: 12px 0; }
-.ov-steps-mini li { margin: 4px 0; }
+.ov-steps-container::before {
+  content: '';
+  position: absolute;
+  top: 55px;
+  left: 15%;
+  right: 15%;
+  height: 2px;
+  background: linear-gradient(to right, transparent, rgba(124, 58, 237, 0.5), transparent);
+  z-index: 0;
+}
+.ov-step {
+  background: rgba(20, 20, 35, 0.4);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px 24px;
+  text-align: center;
+  position: relative;
+  backdrop-filter: blur(8px);
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  z-index: 1;
+}
+.ov-step:hover {
+  transform: translateY(-5px);
+  border-color: rgba(124, 58, 237, 0.5);
+  box-shadow: 0 10px 30px -5px rgba(124, 58, 237, 0.2);
+  background: rgba(25, 25, 40, 0.6);
+}
+.ov-step-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+  position: relative;
+}
+.ov-step-num {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--accent-2);
+  margin-bottom: 12px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.ov-step-icon {
+  width: 72px;
+  height: 72px;
+  background: linear-gradient(135deg, #2e1065, #5b21b6);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 25px rgba(124, 58, 237, 0.3), inset 0 0 10px rgba(255,255,255,0.1);
+  font-size: 32px;
+  color: var(--accent-2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.ov-step h3 {
+  margin: 0 0 10px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+}
+.ov-step p {
+  font-size: 15px;
+  color: var(--text-dim);
+  line-height: 1.6;
+  margin: 0;
+}
+@media (max-width: 768px) {
+  .ov-steps-container {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .ov-steps-container::before {
+    display: none;
+  }
+  .ov-step {
+    display: flex;
+    text-align: left;
+    align-items: flex-start;
+    padding: 20px;
+    gap: 16px;
+  }
+  .ov-step-header {
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+  .ov-step-num { display: none; }
+  .ov-step-icon {
+    width: 48px; height: 48px; font-size: 20px;
+  }
+}
 
 /* Providers */
 .ov-providers {
@@ -197,9 +354,16 @@ html, body {
 @media (max-width: 800px) { .ov-providers { grid-template-columns: 1fr; } }
 .ov-provider {
   border: 1px solid var(--border);
-  background: var(--panel);
-  border-radius: 14px;
-  padding: 18px;
+  background: rgba(20, 20, 35, 0.6);
+  border-radius: 16px;
+  padding: 24px;
+  backdrop-filter: blur(12px);
+  transition: all 0.3s ease;
+}
+.ov-provider:hover {
+  transform: translateY(-3px);
+  border-color: rgba(124,58,237,0.3);
+  box-shadow: 0 10px 30px -10px rgba(0,0,0,0.3);
 }
 .ov-provider-head {
   display: flex; align-items: center; gap: 10px; margin-bottom: 8px;

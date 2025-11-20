@@ -7,12 +7,17 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <nav class="ov-nav">
-        <div class="ov-nav-content">
-            <div class="ov-logo">Oddvision</div>
-            <a href="index.html" class="ov-nav-link">Home</a>
-        </div>
-    </nav>
+    <header class="ov-header">
+        <a class="ov-brand" href="index.html">
+            <span class="ov-brand-emoji">🔮</span> Oddvision
+        </a>
+        <nav class="ov-nav">
+            <a href="index.html">Home</a>
+            <a href="index.html#features">Features</a>
+            <a href="index.html#how">How it works</a>
+            <a href="index.html#install" class="ov-btn ov-btn--ghost">Install</a>
+        </nav>
+    </header>
 
     <main class="ov-privacy-page">
         <div class="ov-privacy-container">
@@ -161,7 +166,12 @@
     </main>
 
     <footer class="ov-footer">
-        <p>&copy; 2025 Oddvision. Open source. Your data, your control.</p>
+        <div class="ov-container ov-footer-inner">
+            <span>🔮 Oddvision</span>
+            <div class="ov-footer-right">
+                <span class="ov-footer-dim">Your data, your control.</span>
+            </div>
+        </div>
     </footer>
 </body>
 </html>
