@@ -52,7 +52,12 @@ html, body {
   gap: 8px;
   font-size: 18px;
 }
-.ov-brand-emoji { font-size: 18px; }
+.ov-brand-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  object-fit: cover;
+}
 .ov-nav {
   display: flex;
   gap: 18px;
@@ -406,6 +411,13 @@ html, body {
   backdrop-filter: blur(8px);
 }
 .ov-footer-inner { display: flex; align-items: center; justify-content: space-between; }
+.ov-footer-left { display: flex; align-items: center; gap: 10px; }
+.ov-footer-logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  object-fit: cover;
+}
 .ov-footer-right { display: flex; align-items: center; gap: 16px; }
 .ov-footer-link {
   color: var(--text-dim);
