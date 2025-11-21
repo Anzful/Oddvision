@@ -3,12 +3,13 @@
 import { useEffect, useState, Suspense } from "react";
 import { supabase } from "../../../lib/supabaseClient";
 import { User } from "@supabase/supabase-js";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 
 function LoginContent() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -24,27 +25,40 @@ function LoginContent() {
       const {
         data: { session },
       } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        setUser(session.user);
+        // Redirect to home page if logged in
+        router.push("/");
+      } else {
+        setUser(null);
+      }
       setLoading(false);
 
       const {
         data: { subscription },
       } = supabase.auth.onAuthStateChange((_event, session) => {
-        setUser(session?.user ?? null);
+        if (session?.user) {
+          setUser(session.user);
+          router.push("/");
+        } else {
+          setUser(null);
+        }
       });
 
       return () => subscription.unsubscribe();
     };
 
     checkSession();
-  }, [searchParams]);
+  }, [searchParams, router]);
 
   const signInWithGoogle = async () => {
-    // This is for the WEBSITE login (not the extension popup)
+    // This is for the WEBSITE login
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: window.location.origin + "/login",
+        // Redirect to home page after login
+        redirectTo: window.location.origin,
       },
     });
     if (error) console.error("Login error:", error.message);
@@ -83,6 +97,9 @@ function LoginContent() {
           <>
             <p style={{ marginBottom: "20px", color: "var(--text)" }}>
               Signed in as: {user.email}
+            </p>
+            <p style={{ marginBottom: "20px", fontSize: "14px", color: "var(--text-dim)" }}>
+              Redirecting to home...
             </p>
             <button onClick={signOut} className="ov-btn ov-btn--primary">
               Sign Out

@@ -58,12 +58,23 @@ export default function Pricing() {
         </p>
       </div>
 
-      <div className="max-w-md mx-auto mt-12 bg-white/5 border border-white/10 rounded-2xl p-8 backdrop-blur-sm">
-        <div className="flex justify-between items-baseline mb-8">
-          <span className="text-2xl font-bold">Monthly Plan</span>
-          <span className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400">
-            $5.00
-          </span>
+      <div className="max-w-md mx-auto mt-12 bg-white/5 border border-white/10 rounded-2xl p-8 backdrop-blur-sm relative overflow-hidden">
+        {/* Discount Badge */}
+        <div className="absolute top-4 right-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg transform rotate-3 hover:scale-105 transition-transform">
+          50% OFF
+        </div>
+
+        <div className="flex flex-col items-start mb-8">
+          <span className="text-2xl font-bold mb-1">Monthly Plan</span>
+          <div className="flex items-baseline gap-3">
+            <span className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400">
+              $7.50
+            </span>
+            <span className="text-lg text-gray-500 line-through font-medium decoration-gray-500/50">
+              $14.99
+            </span>
+          </div>
+          <span className="text-xs text-gray-400 mt-1">per month</span>
         </div>
 
         <ul className="space-y-4 mb-8 text-gray-300">
@@ -118,4 +129,3 @@ export default function Pricing() {
     </div>
   );
 }
-
