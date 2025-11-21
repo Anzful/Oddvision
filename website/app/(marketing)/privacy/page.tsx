@@ -17,7 +17,30 @@ export default function Privacy() {
         </section>
 
         <section className="ov-privacy-section">
-          <h2>Data We Access</h2>
+          <h2>Data We Collect</h2>
+          <h3>Account Information</h3>
+          <p>
+            If you choose to sign in, we collect your email address via Google OAuth
+            to manage your subscription and authenticate your usage.
+          </p>
+          
+          <h3>Usage Data</h3>
+          <p>
+            We log usage statistics to help us improve the service and manage limits.
+            This includes:
+          </p>
+          <ul>
+            <li>Number of prompts sent</li>
+            <li>AI model used</li>
+            <li>Length of the prompt (character count)</li>
+            <li>Timestamp of usage</li>
+          </ul>
+          <p>
+            <strong>We do NOT store the actual content</strong> of your prompts or the 
+            captured text in our database. The text is processed transiently by the 
+            AI provider and then discarded.
+          </p>
+
           <h3>Website Content</h3>
           <p>
             When you press <strong>Alt+1</strong>, Oddvision captures visible
@@ -127,15 +150,13 @@ export default function Privacy() {
             your request. Discarded immediately after AI responds.
           </p>
           <p>
-            <strong>User preferences:</strong> Overlay position and display
-            settings are stored locally in your browser using{" "}
-            <code>chrome.storage.local</code>. These are deleted when you
-            uninstall the extension.
+            <strong>Account & Usage Metadata:</strong> Stored securely in our database (Supabase)
+            to provide your account history and subscription status.
           </p>
           <p>
-            <strong>No external storage:</strong> Oddvision does not use
-            databases, servers, or cloud storage. Everything stays in your
-            browser.
+            <strong>User preferences:</strong> Overlay position and display
+            settings are stored locally in your browser using{" "}
+            <code>chrome.storage.local</code>.
           </p>
         </section>
 
