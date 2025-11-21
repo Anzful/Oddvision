@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 :root {
   --bg: #0f0f19;
   --panel: rgba(15, 15, 25, 0.72);
@@ -19,7 +21,7 @@ html, body {
               radial-gradient(1000px 700px at 15% 10%, rgba(34, 211, 238, 0.09), transparent 60%),
               var(--bg);
   color: var(--text);
-  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  font-family: var(--font-jakarta), system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
   line-height: 1.55;
   scroll-behavior: smooth;
 }
@@ -556,5 +558,3 @@ html, body {
     padding: 12px 8px;
   }
 }
-
-
