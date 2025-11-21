@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { supabase } from "../../../lib/supabaseClient";
 import { User } from "@supabase/supabase-js";
 import { useSearchParams } from "next/navigation";
 
-export default function Login() {
+function LoginContent() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const searchParams = useSearchParams();
@@ -95,5 +95,13 @@ export default function Login() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function Login() {
+  return (
+    <Suspense fallback={<div style={{ color: "white", textAlign: "center", padding: "40px" }}>Loading Login...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }
