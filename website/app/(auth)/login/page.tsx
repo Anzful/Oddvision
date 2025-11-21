@@ -3,12 +3,23 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../../lib/supabaseClient";
 import { User } from "@supabase/supabase-js";
+import { useSearchParams } from "next/navigation";
 
 export default function Login() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const searchParams = useSearchParams();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    // Check for errors in URL (from OAuth redirect)
+    const error = searchParams.get("error");
+    const errorDesc = searchParams.get("error_description");
+    if (error) {
+      console.error("Auth Error:", error, errorDesc);
+      setErrorMessage(errorDesc || "Authentication failed. Please try again.");
+    }
+
     const checkSession = async () => {
       const {
         data: { session },
@@ -26,9 +37,10 @@ export default function Login() {
     };
 
     checkSession();
-  }, []);
+  }, [searchParams]);
 
   const signInWithGoogle = async () => {
+    // This is for the WEBSITE login (not the extension popup)
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -47,6 +59,20 @@ export default function Login() {
     <div className="ov-privacy-container" style={{ textAlign: "center", paddingTop: "60px" }}>
       <h1>Welcome Back</h1>
       <p>Sign in to manage your subscription and view your usage stats.</p>
+
+      {errorMessage && (
+        <div style={{ 
+          margin: "20px auto", 
+          padding: "12px", 
+          background: "rgba(239, 68, 68, 0.1)", 
+          border: "1px solid rgba(239, 68, 68, 0.2)", 
+          borderRadius: "8px", 
+          color: "#f87171",
+          maxWidth: "400px" 
+        }}>
+          ⚠️ {errorMessage}
+        </div>
+      )}
 
       <div style={{ marginTop: "40px" }}>
         {loading ? (
@@ -71,4 +97,3 @@ export default function Login() {
     </div>
   );
 }
-
