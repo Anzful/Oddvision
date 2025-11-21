@@ -5,8 +5,7 @@
   "scripts": {
     "generate-icons": "node generate-icons.js"
   },
-  "devDependencies": {
-    "canvas": "^2.11.2"
+  "dependencies": {
+    "@supabase/supabase-js": "^2.84.0"
   }
 }
-

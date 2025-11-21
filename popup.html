@@ -29,9 +29,12 @@
       border-radius: 14px;
       padding: 16px;
       backdrop-filter: blur(10px);
+      min-height: 300px; /* Ensure height for loading state */
+      display: flex;
+      flex-direction: column;
     }
     .header { text-align: center; margin-bottom: 14px; }
-    .header h1 { font-size: 20px; letter-spacing: -.01em; margin-bottom: 4px; }
+    .header h1 { font-size: 20px; letter-spacing: -.01em; margin-bottom: 4px; display: flex; align-items: center; justify-content: center; gap: 8px; }
     .header p { font-size: 12px; color: var(--text-dim); }
 
     .toggle-section {
@@ -87,40 +90,75 @@
       box-shadow: 0 10px 24px rgba(124,58,237,.35);
     }
     .settings-btn:hover { filter: brightness(1.05); }
+    
+    #user-email {
+        font-size: 11px; color: var(--text-dim); margin-top: 4px;
+    }
+    #logout-btn {
+        background: transparent; border: 1px solid var(--border); color: var(--text-dim); font-size: 11px; padding: 4px 8px; border-radius: 4px; cursor: pointer; margin-top: 8px;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1 style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+      <h1>
         <img src="icons/icon128.png" style="width: 32px; height: 32px; border-radius: 6px;"> 
         Oddvision
       </h1>
       <p style="opacity:.75">Stealth overlay controls</p>
+      <div id="user-info" style="display:none;">
+          <div id="user-email"></div>
+          <button id="logout-btn">Sign Out</button>
+      </div>
     </div>
 
-    <div class="toggle-section">
-      <label class="toggle-label">Extension Status</label>
-      <label class="switch">
-        <input type="checkbox" id="enable-toggle">
-        <span class="slider"></span>
-      </label>
-      <div class="status" id="status-text">Disabled</div>
+    <!-- Loading View -->
+    <div id="loading-view" style="flex: 1; display: flex; align-items: center; justify-content: center; color: var(--text-dim);">
+        <p>Checking session...</p>
     </div>
 
-    <div class="instructions">
-      <h3>📖 How to Use</h3>
-      <p><strong>1.</strong> <span class="shortcut">Alt+1</span> - Capture page</p>
-      <p><strong>2.</strong> <span class="shortcut">Alt+2</span> - Analyze</p>
-      <p><strong>3.</strong> <span class="shortcut">Alt+3</span> - View overlay</p>
-      <p><strong>4.</strong> <span class="shortcut">Alt+4</span> - Text color</p>
-      <p style="margin-top: 12px; font-size: 11px; color: #999;">💡 Automatic failover: Groq → OpenRouter</p>
+    <!-- Auth View -->
+    <div id="auth-view" style="display: none; flex: 1; flex-direction: column; align-items: center; justify-content: center; padding: 20px 0;">
+      <p style="margin-bottom: 20px; font-size: 14px; color: var(--text-dim); text-align: center;">Sign in to enable AI features</p>
+      <button id="login-btn" class="settings-btn" style="background: white; color: #3c4043; display: flex; align-items: center; justify-content: center; gap: 10px; font-family: 'Google Sans', Roboto, Arial, sans-serif; font-weight: 500;">
+        <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+          <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"></path>
+          <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.715H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"></path>
+          <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"></path>
+          <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.159 6.656 3.58 9 3.58z" fill="#EA4335"></path>
+        </svg>
+        Sign in with Google
+      </button>
     </div>
 
-    <button class="settings-btn" id="settings-btn">⚙️ Extension Settings</button>
+    <!-- App View -->
+    <div id="app-view" style="display: none;">
+        <div class="toggle-section">
+        <label class="toggle-label">Extension Status</label>
+        <label class="switch">
+            <input type="checkbox" id="enable-toggle">
+            <span class="slider"></span>
+        </label>
+        <div class="status" id="status-text">Disabled</div>
+        </div>
+
+        <div class="instructions">
+        <h3>📖 How to Use</h3>
+        <p><strong>1.</strong> <span class="shortcut">Alt+1</span> - Capture page</p>
+        <p><strong>2.</strong> <span class="shortcut">Alt+2</span> - Analyze</p>
+        <p><strong>3.</strong> <span class="shortcut">Alt+3</span> - View overlay</p>
+        <p><strong>4.</strong> <span class="shortcut">Alt+4</span> - Text color</p>
+        <p style="margin-top: 12px; font-size: 11px; color: #999;">💡 Automatic failover: Groq → OpenRouter</p>
+        </div>
+
+        <button class="settings-btn" id="settings-btn">⚙️ Extension Settings</button>
+    </div>
   </div>
 
+  <script src="secrets.js"></script>
+  <script src="lib/supabase.js"></script>
+  <script src="lib/supabase-setup.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
-

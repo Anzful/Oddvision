@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Oddvision</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <nav class="ov-nav">
+        <div class="ov-nav-content">
+            <div class="ov-logo">🔮 Oddvision</div>
+            <a href="index.html" class="ov-nav-link">Home</a>
+        </div>
+    </nav>
+
+    <main class="ov-privacy-page"> <!-- Reusing privacy page styles for container -->
+        <div class="ov-privacy-container" style="text-align: center; padding-top: 60px;">
+            <h1>Welcome Back</h1>
+            <p>Sign in to manage your subscription and view your usage stats.</p>
+            
+            <div style="margin-top: 40px;">
+                <button id="authButton" class="ov-btn ov-btn--primary">Loading...</button>
+            </div>
+            
+            <p id="userDisplay" style="margin-top: 20px; color: #a7a8b3; display: none;"></p>
+        </div>
+    </main>
+
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+</body>
+</html>
+

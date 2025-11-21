@@ -1,6 +1,6 @@
 // Oddvision Background Service Worker
 // Configuration is loaded from secrets.js
-importScripts('secrets.js');
+importScripts('secrets.js', 'lib/supabase.js', 'lib/supabase-setup.js');
 
 // Request queue for rate limiting
 const requestQueue = [];
@@ -91,10 +91,22 @@ async function processRequest(prompt, sendResponse, tabId, timestamp) {
   totalProcessed++;
   
   try {
+    // Enforce Login: Check session before processing
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      console.warn('Oddvision: Request blocked (not logged in)');
+      sendResponse({ success: false, error: "Please log in via the extension popup to use AI features." });
+      return;
+    }
+
     if (waitTime > 0.1) {
       console.log(`⚡ Oddvision: Processing request #${totalProcessed} (waited ${waitTime}s)`);
     }
     const result = await callAIWithFailover(prompt);
+    
+    // Track usage (fire and forget)
+    trackUsage(prompt, result.model);
+    
     sendResponse({ success: true, response: result.response, model: result.model });
     console.log(`✅ Oddvision: Completed request #${totalProcessed} via ${result.model}`);
   } catch (error) {
@@ -246,3 +258,40 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
+// Track usage in Supabase
+async function trackUsage(prompt, model) {
+  try {
+    // Check if user is logged in
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      // Optional: Log anonymous usage or skip
+      console.log('Oddvision: Usage not tracked (no session)');
+      return;
+    }
+
+    // Insert into 'usage_logs' table
+    // Note: Create this table in Supabase dashboard if not exists:
+    // create table usage_logs (
+    //   id uuid default gen_random_uuid() primary key,
+    //   user_id uuid references auth.users,
+    //   prompt_length int,
+    //   model text,
+    //   created_at timestamptz default now()
+    // );
+    const { error } = await supabase
+      .from('usage_logs')
+      .insert({
+        user_id: session.user.id,
+        prompt_length: prompt ? prompt.length : 0,
+        model: model
+      });
+      
+    if (error) {
+      console.error('Supabase tracking error:', error.message);
+    } else {
+      console.log('Oddvision: Usage tracked successfully');
+    }
+  } catch (err) {
+    console.error('Supabase tracking exception:', err);
+  }
+}
