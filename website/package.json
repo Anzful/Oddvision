@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@paypal/react-paypal-js": "^8.9.2",
     "@supabase/supabase-js": "^2.84.0",
     "@tabler/icons-react": "^3.35.0",
     "clsx": "^2.1.1",

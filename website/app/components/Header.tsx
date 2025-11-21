@@ -33,6 +33,9 @@ export default function Header() {
         <Link href="/#rules" onClick={() => setIsMenuOpen(false)}>
           Rules
         </Link>
+        <Link href="/pricing" onClick={() => setIsMenuOpen(false)}>
+          Pricing
+        </Link>
         <Link href="/login" onClick={() => setIsMenuOpen(false)}>
           Log In
         </Link>

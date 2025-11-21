@@ -1,6 +1,13 @@
 // Oddvision Background Service Worker
 // Configuration is loaded from secrets.js
-importScripts('secrets.js', 'lib/supabase.js', 'lib/supabase-setup.js');
+console.log("🔮 Oddvision: Service Worker Starting...");
+
+try {
+  importScripts('secrets.js', 'lib/supabase.js', 'lib/supabase-setup.js');
+  console.log("🔮 Oddvision: Scripts imported successfully");
+} catch (e) {
+  console.error("🔮 Oddvision: Script import failed", e);
+}
 
 // Request queue for rate limiting
 const requestQueue = [];
@@ -12,6 +19,8 @@ let lastRequestTime = 0;
 
 // Handle keyboard shortcut command
 chrome.commands.onCommand.addListener((command) => {
+  console.log("🔮 Oddvision: Command received:", command); // DEBUG LOG
+  
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (tabs[0]) {
       let action = '';
@@ -27,10 +36,13 @@ chrome.commands.onCommand.addListener((command) => {
       }
       
       if (action) {
+        console.log("🔮 Oddvision: Sending action to tab:", action, tabs[0].id); // DEBUG LOG
         chrome.tabs.sendMessage(tabs[0].id, { action }).catch(err => {
-          console.log('Oddvision: Could not send message to tab', err);
+          console.log('Oddvision: Could not send message to tab (Tab might be restricted or loading)', err);
         });
       }
+    } else {
+      console.log("🔮 Oddvision: No active tab found");
     }
   });
 });
