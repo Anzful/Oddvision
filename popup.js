@@ -53,6 +53,78 @@ function handleSession(session) {
   userInfo.style.display = 'block';
   showView('app');
   initAppLogic(); 
+  fetchUsage(session.user);
+}
+
+async function fetchUsage(user) {
+    const usageCountEl = document.getElementById('usage-count');
+    const usageResetEl = document.getElementById('usage-reset');
+
+    if (!user) return;
+
+    try {
+        // We use 'maybeSingle' instead of 'single' to handle no rows gracefully if preferred,
+        // but checking error code is also fine.
+        const { data, error } = await supabase
+            .from('user_usage')
+            .select('*')
+            .eq('user_id', user.id)
+            .single();
+
+        if (error && error.code !== 'PGRST116') {
+            console.error('Error fetching usage:', error);
+            usageCountEl.textContent = 'Error';
+            return;
+        }
+
+        let count = 0;
+        let limit = 3;
+        let isPro = false;
+        let daysLeft = 0;
+
+        if (data) {
+            isPro = data.is_pro;
+            
+            const lastReset = new Date(data.last_reset_at);
+            const now = new Date();
+            // Calculate difference in milliseconds
+            const diffTime = now - lastReset;
+            // Convert to days
+            const diffDays = diffTime / (1000 * 60 * 60 * 24);
+            
+            if (diffDays >= 7) {
+                count = 0; // Visual reset (actual reset happens on next use)
+                daysLeft = 7;
+            } else {
+                count = data.prompts_count;
+                daysLeft = Math.ceil(7 - diffDays);
+            }
+        } else {
+            // No record found => New user who hasn't used it yet
+            count = 0;
+            daysLeft = 7;
+        }
+
+        if (isPro) {
+            usageCountEl.textContent = 'Unlimited';
+            usageCountEl.style.color = '#22d3ee'; // Cyan
+            usageResetEl.textContent = 'Pro Plan Active';
+        } else {
+            // Clamp count to limit for display if not pro
+            const displayCount = count > limit ? limit : count;
+            usageCountEl.textContent = `${displayCount} / ${limit}`;
+            usageResetEl.textContent = `Resets in ~${daysLeft} day${daysLeft !== 1 ? 's' : ''}`;
+            
+            if (count >= limit) {
+                usageCountEl.style.color = '#ef4444'; // Red
+            } else {
+                 usageCountEl.style.color = '#eaeaf0'; // var(--text)
+            }
+        }
+        
+    } catch (err) {
+        console.error('Usage fetch error:', err);
+    }
 }
 
 // Login Flow
@@ -77,9 +149,13 @@ loginBtn.addEventListener('click', async () => {
       url: data.url,
       interactive: true
     }, async (responseUrl) => {
+      // Handle User Cancelation or Errors
       if (chrome.runtime.lastError) {
-        console.error(chrome.runtime.lastError);
-        alert('Login canceled or failed: ' + chrome.runtime.lastError.message);
+        console.warn('Auth flow warning:', chrome.runtime.lastError.message);
+        // Don't alert immediately if it's just "User cancelled" which can be noisy
+        if (!chrome.runtime.lastError.message.includes("User cancelled")) {
+            alert('Login failed: ' + chrome.runtime.lastError.message);
+        }
         return;
       }
       
@@ -98,11 +174,23 @@ loginBtn.addEventListener('click', async () => {
             refresh_token
           });
           if (error) throw error;
+          
+          // SUCCESS!
           handleSession(session);
+          
+          // Optional: Close the popup? No, let user see they are logged in.
         } else {
-            // Sometimes error is in query params
+            // Check for error in query params (sometimes Supabase returns errors there)
             const errorDesc = params.get('error_description');
-            if (errorDesc) alert('Login error: ' + errorDesc);
+            const error = params.get('error');
+            
+            if (errorDesc || error) {
+                console.error('Supabase Auth Error:', error, errorDesc);
+                alert('Login failed: ' + (errorDesc || error));
+            } else {
+                 // Fallback if no tokens and no error (shouldn't happen on success)
+                 console.warn('No access token found in response URL:', responseUrl);
+            }
         }
       }
     });

@@ -102,12 +102,38 @@ async function processRequest(prompt, sendResponse, tabId, timestamp) {
     if (waitTime > 0.1) {
       console.log(`⚡ Oddvision: Processing request #${totalProcessed} (waited ${waitTime}s)`);
     }
+
+    // Check usage limits via RPC
+    const { data: usageData, error: usageError } = await supabase.rpc('increment_prompt_usage');
+    
+    if (usageError) {
+      console.error('Usage check failed:', usageError);
+      // Fail open or closed? Closed for now to prevent abuse if DB is down, but be careful.
+      // Actually, if RPC fails, it might be network. Let's fail safe if possible, but strict for limits.
+      // If error is "function not found", it means SQL wasn't run.
+      // Let's throw to be safe.
+      throw new Error("Could not verify usage limits: " + usageError.message);
+    }
+
+    if (usageData && !usageData.allowed) {
+      console.warn('Oddvision: Usage limit reached');
+      sendResponse({ 
+        success: false, 
+        error: usageData.error || "Weekly limit reached (3/3). Wait for reset or upgrade." 
+      });
+      return;
+    }
+
+    const remaining = usageData?.remaining;
+    console.log(`Oddvision: Usage approved. Remaining: ${remaining}`);
+
     const result = await callAIWithFailover(prompt);
     
     // Track usage (fire and forget)
+    // We already tracked the *count* via RPC, but we still log details here if we want
     trackUsage(prompt, result.model);
     
-    sendResponse({ success: true, response: result.response, model: result.model });
+    sendResponse({ success: true, response: result.response, model: result.model, remaining });
     console.log(`✅ Oddvision: Completed request #${totalProcessed} via ${result.model}`);
   } catch (error) {
     console.error(`❌ Oddvision: Failed request #${totalProcessed}:`, error.message);
