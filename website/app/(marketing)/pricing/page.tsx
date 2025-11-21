@@ -6,8 +6,8 @@ import { supabase } from "../../../lib/supabaseClient";
 import { User } from "@supabase/supabase-js";
 import Link from "next/link";
 
-const PAYPAL_CLIENT_ID = "AaK2czAq5PwwqmR5OOLXUEqWGSLENkMOw_tayR8TmB8Ao_4fG4NPmMYOuiIKLSh09atnPJX3gUw-kBbZ";
-const PAYPAL_PLAN_ID = "P-14C86532YB056482YNEQOTRI";
+const PAYPAL_CLIENT_ID = "AVMtE7Ipcgzl1YXkJf3dnRNe9I_DDoKA5GhG6AR_BJQp0Ha-Vv-pUac2-ygfFdN6OzBOLads-PY-1zOi";
+const PAYPAL_PLAN_ID = "P-14C86532YB056482YNEQOTRI"; // Verify this Plan ID exists in your new App!
 
 export default function Pricing() {
   const [user, setUser] = useState<User | null>(null);
