@@ -114,6 +114,10 @@ export default function Pricing() {
                   });
                 }}
                 onApprove={handleApprove}
+                onError={(err) => {
+                  console.error("PayPal Error:", err);
+                  alert("PayPal Error: " + JSON.stringify(err));
+                }}
               />
             </PayPalScriptProvider>
           </div>
