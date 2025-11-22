@@ -10,16 +10,41 @@ import { User } from "@supabase/supabase-js";
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [isPro, setIsPro] = useState(false);
 
   useEffect(() => {
-    // Check initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Initial check
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user ?? null);
-    });
+      
+      if (session?.user) {
+        // Fetch Pro status
+        // Use select('*') to prevent errors if columns are missing
+        const { data } = await supabase
+          .from('user_usage')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .single();
+        
+        if (data?.is_pro) setIsPro(true);
+      }
+    };
+    checkAuth();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null);
+      setIsPro(false); // Reset first
+      
+      if (session?.user) {
+         const { data } = await supabase
+          .from('user_usage')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .single();
+         if (data?.is_pro) setIsPro(true);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -28,6 +53,7 @@ export default function Header() {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
+    setIsPro(false);
     setIsMenuOpen(false);
   };
 
@@ -65,6 +91,11 @@ export default function Header() {
              <div className="flex items-center gap-2 text-sm text-gray-300 bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
                 <IconUser size={16} className="text-cyan-400" />
                 <span className="truncate max-w-[150px]">{user.email}</span>
+                {isPro && (
+                  <span className="bg-cyan-500/20 text-cyan-400 text-[10px] font-bold px-1.5 py-0.5 rounded border border-cyan-500/30 uppercase tracking-wider">
+                    PRO
+                  </span>
+                )}
              </div>
              <button 
                 onClick={handleSignOut}

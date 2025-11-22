@@ -5,7 +5,7 @@ import { getPayPalAccessToken } from "@/lib/paypal-api";
 
 export async function POST(req: Request) {
   try {
-    // Debugging Env Vars (Safe logging)
+    // Debugging Env Vars
     const configDebug = {
       hasClientId: !!PAYPAL_CONFIG.clientId,
       hasClientSecret: !!PAYPAL_CONFIG.clientSecret,
@@ -23,8 +23,6 @@ export async function POST(req: Request) {
       }, { status: 500 });
     }
 
-    // Initialize Supabase Admin Client (Service Role) inside the handler
-    // to prevent build-time errors if env vars are missing during static analysis
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -37,6 +35,8 @@ export async function POST(req: Request) {
     }
 
     console.log(`Verifying subscription ${subscriptionId} for user ${userId}`);
+
+    let nextBillingDate: string | null = null;
 
     // 1. Verify with PayPal API
     try {
@@ -55,7 +55,6 @@ export async function POST(req: Request) {
             const errorText = await subResponse.text();
             console.error("PayPal Subscription Check Failed:", subResponse.status, errorText);
             
-            // Handle 404 specifically (Wrong Environment)
             if (subResponse.status === 404) {
               throw new Error(`Subscription ID not found. Target: ${PAYPAL_CONFIG.apiUrl} (Check Live vs Sandbox)`);
             }
@@ -70,30 +69,48 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: `Subscription is not active (Status: ${subData.status})` }, { status: 400 });
         }
         
+        // Capture Billing Date
+        if (subData.billing_info?.next_billing_time) {
+           nextBillingDate = subData.billing_info.next_billing_time;
+        }
+
         console.log("PayPal Verified: Active");
     } catch (verifyErr: any) {
         console.error("PayPal Verification Failed:", verifyErr);
-        
-        // Construct a detailed debug message for the client alert
         const debugMsg = `[Target: ${configDebug.apiUrl}, ClientID: ${configDebug.clientIdPrefix}]`;
-        
         return NextResponse.json({ 
             error: `Verification failed: ${verifyErr.message || "Unknown error"} ${debugMsg}` 
         }, { status: 500 });
     }
 
     // 2. Update user_usage table
+    const updateData: any = { is_pro: true };
+    
+    if (nextBillingDate) {
+       updateData.next_billing_date = nextBillingDate;
+    }
+
     const { error } = await supabaseAdmin
       .from("user_usage")
-      .update({ 
-        is_pro: true,
-        // Store subscription ID if you added a column for it
-        // paypal_subscription_id: subscriptionId 
-      })
+      .update(updateData)
       .eq("user_id", userId);
 
     if (error) {
       console.error("Supabase update error:", error);
+      // Fallback: If updating 'next_billing_date' failed (e.g. column missing), try updating just is_pro
+      if (error.message?.includes('next_billing_date')) {
+         console.warn("Column 'next_billing_date' might be missing. Retrying with only is_pro.");
+         const { error: retryError } = await supabaseAdmin
+          .from("user_usage")
+          .update({ is_pro: true })
+          .eq("user_id", userId);
+          
+          if (retryError) {
+             return NextResponse.json({ error: "Database update failed (retry)" }, { status: 500 });
+          }
+          return NextResponse.json({ success: true, warning: "Date not saved (missing column)" });
+      }
+
       return NextResponse.json({ error: "Database update failed" }, { status: 500 });
     }
 

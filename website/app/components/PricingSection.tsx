@@ -12,6 +12,8 @@ const PAYPAL_PLAN_ID = process.env.NEXT_PUBLIC_PAYPAL_PLAN_ID!;
 export default function PricingSection() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isPro, setIsPro] = useState(false);
+  const [subscriptionData, setSubscriptionData] = useState<any>(null);
 
   useEffect(() => {
     // Debug Environment Variables
@@ -23,7 +25,24 @@ export default function PricingSection() {
 
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+
+      if (currentUser) {
+        // Fetch Pro Status
+        // We use select('*') to be safe against missing columns (like next_billing_date)
+        const { data: usage } = await supabase
+          .from('user_usage')
+          .select('*')
+          .eq('user_id', currentUser.id)
+          .single();
+        
+        if (usage) {
+          setIsPro(!!usage.is_pro);
+          setSubscriptionData(usage);
+        }
+      }
+
       setLoading(false);
     };
     checkSession();
@@ -47,6 +66,9 @@ export default function PricingSection() {
 
       if (response.ok) {
         alert("Subscription successful! Your Pro features are now active.");
+        setIsPro(true); // Optimistic update
+        // Reload page to refresh state fully
+        window.location.reload();
       } else {
         const errorData = await response.json();
         console.error("Failed to sync subscription:", errorData);
@@ -68,10 +90,12 @@ export default function PricingSection() {
         </div>
 
         <div className="max-w-md mx-auto bg-white/5 border border-white/10 rounded-2xl p-8 backdrop-blur-sm relative overflow-hidden">
-          {/* Discount Badge */}
-          <div className="absolute top-4 right-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg transform rotate-3 hover:scale-105 transition-transform">
-            50% OFF
-          </div>
+          {/* Discount Badge - Hide if Pro */}
+          {!isPro && (
+            <div className="absolute top-4 right-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg transform rotate-3 hover:scale-105 transition-transform">
+              50% OFF
+            </div>
+          )}
 
           <div className="flex flex-col items-start mb-8">
             <span className="text-2xl font-bold mb-1">Monthly Plan</span>
@@ -100,6 +124,20 @@ export default function PricingSection() {
 
           {loading ? (
             <div className="text-center py-4">Loading...</div>
+          ) : isPro ? (
+             <div className="w-full bg-green-500/10 border border-green-500/20 rounded-xl p-6 text-center">
+                <div className="text-green-400 text-lg font-bold mb-2">
+                   ✨ You are Pro
+                </div>
+                <p className="text-gray-300 text-sm mb-2">
+                   Your subscription is active.
+                </p>
+                {subscriptionData?.next_billing_date && (
+                  <p className="text-gray-400 text-xs">
+                    Next billing: {new Date(subscriptionData.next_billing_date).toLocaleDateString()}
+                  </p>
+                )}
+             </div>
           ) : user ? (
             <div className="w-full">
               <PayPalScriptProvider
