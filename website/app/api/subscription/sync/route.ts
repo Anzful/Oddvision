@@ -63,10 +63,12 @@ export async function POST(req: Request) {
         }
         
         console.log("PayPal Verified: Active");
-    } catch (verifyErr) {
+    } catch (verifyErr: any) {
         console.error("PayPal Verification Failed:", verifyErr);
-        // In Sandbox dev, you might want to allow it anyway if network fails, but in Prod: FAIL.
-        return NextResponse.json({ error: "Could not verify subscription with PayPal" }, { status: 500 });
+        // Return the actual error message for debugging
+        return NextResponse.json({ 
+            error: `Verification failed: ${verifyErr.message || "Unknown error"}` 
+        }, { status: 500 });
     }
 
     // 2. Update user_usage table
