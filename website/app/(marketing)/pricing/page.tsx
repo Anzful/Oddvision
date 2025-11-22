@@ -108,7 +108,7 @@ export default function Pricing() {
             >
               <PayPalButtons
                 style={{
-                  shape: "pill",
+                  shape: "rect",
                   color: "gold",
                   layout: "vertical",
                   label: "subscribe",
