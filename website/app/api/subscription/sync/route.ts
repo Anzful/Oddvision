@@ -6,12 +6,15 @@ import { getPayPalAccessToken } from "@/lib/paypal-api";
 export async function POST(req: Request) {
   try {
     // Debugging Env Vars (Safe logging)
-    console.log("PayPal Sync Debug:", {
+    const configDebug = {
       hasClientId: !!PAYPAL_CONFIG.clientId,
       hasClientSecret: !!PAYPAL_CONFIG.clientSecret,
       apiUrl: PAYPAL_CONFIG.apiUrl,
-      clientIdPrefix: PAYPAL_CONFIG.clientId ? PAYPAL_CONFIG.clientId.substring(0, 4) + "..." : "MISSING"
-    });
+      clientIdPrefix: PAYPAL_CONFIG.clientId ? PAYPAL_CONFIG.clientId.substring(0, 4) + "..." : "MISSING",
+      secretLength: PAYPAL_CONFIG.clientSecret?.length || 0
+    };
+    
+    console.log("PayPal Sync Debug:", configDebug);
 
     if (!PAYPAL_CONFIG.clientSecret) {
       console.error("CRITICAL: PAYPAL_CLIENT_SECRET is missing on the server.");
@@ -54,7 +57,7 @@ export async function POST(req: Request) {
             
             // Handle 404 specifically (Wrong Environment)
             if (subResponse.status === 404) {
-              throw new Error(`Subscription ID not found (Are you testing in the wrong mode? Live vs Sandbox?)`);
+              throw new Error(`Subscription ID not found. Target: ${PAYPAL_CONFIG.apiUrl} (Check Live vs Sandbox)`);
             }
             
             throw new Error(`PayPal API Error: ${subResponse.status} ${subResponse.statusText}`);
@@ -70,9 +73,12 @@ export async function POST(req: Request) {
         console.log("PayPal Verified: Active");
     } catch (verifyErr: any) {
         console.error("PayPal Verification Failed:", verifyErr);
-        // Return the actual error message for debugging
+        
+        // Construct a detailed debug message for the client alert
+        const debugMsg = `[Target: ${configDebug.apiUrl}, ClientID: ${configDebug.clientIdPrefix}]`;
+        
         return NextResponse.json({ 
-            error: `Verification failed: ${verifyErr.message || "Unknown error"}` 
+            error: `Verification failed: ${verifyErr.message || "Unknown error"} ${debugMsg}` 
         }, { status: 500 });
     }
 
