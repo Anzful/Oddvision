@@ -15,9 +15,10 @@ export default function Pricing() {
 
   useEffect(() => {
     // Debug Environment Variables
-    console.log("PayPal Config:", {
-      clientId: PAYPAL_CLIENT_ID ? "Present" : "Missing",
-      planId: PAYPAL_PLAN_ID ? "Present" : "Missing"
+    console.log("PayPal Debug Config:", {
+      clientIdPrefix: PAYPAL_CLIENT_ID ? PAYPAL_CLIENT_ID.substring(0, 4) + "..." : "Missing",
+      planId: PAYPAL_PLAN_ID,
+      envVarClientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ? "Loaded" : "Not Loaded"
     });
 
     const checkSession = async () => {
