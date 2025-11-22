@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { IconMenu2, IconX, IconUser } from "@tabler/icons-react";
 import { supabase } from "../../lib/supabaseClient";
 import { User } from "@supabase/supabase-js";

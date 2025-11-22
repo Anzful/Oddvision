@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { supabase } from "../../lib/supabaseClient";
 import { User } from "@supabase/supabase-js";
@@ -160,4 +160,3 @@ export default function PricingSection() {
     </section>
   );
 }
-
