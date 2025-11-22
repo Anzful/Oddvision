@@ -68,6 +68,7 @@ function LoginContent() {
     const { error } = await supabase.auth.signOut();
     if (error) console.error("Logout error:", error.message);
     setUser(null);
+    router.refresh();
   };
 
   return (

@@ -55,6 +55,7 @@ export default function Header() {
     setUser(null);
     setIsPro(false);
     setIsMenuOpen(false);
+    window.location.href = "/"; // Force reload/navigation to clear state
   };
 
   return (
