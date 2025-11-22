@@ -14,6 +14,12 @@ export default function Pricing() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Debug Environment Variables
+    console.log("PayPal Config:", {
+      clientId: PAYPAL_CLIENT_ID ? "Present" : "Missing",
+      planId: PAYPAL_PLAN_ID ? "Present" : "Missing"
+    });
+
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user ?? null);
@@ -114,14 +120,26 @@ export default function Pricing() {
                   });
                 }}
                 onApprove={handleApprove}
-                onError={(err) => {
-                  console.error("PayPal Error:", err);
-                  // Check for specific error indicating invalid Plan ID
-                  const errString = JSON.stringify(err);
-                  if (errString.includes("RESOURCE_NOT_FOUND")) {
-                    alert("PayPal Error: The Plan ID is invalid or does not exist in this PayPal account. Please check your Plan ID.");
+                onError={(err: any) => {
+                  console.error("PayPal Error Object:", err);
+                  
+                  let errorMessage = "Unknown error";
+                  if (err?.message) {
+                    errorMessage = err.message;
+                  } else if (typeof err === "string") {
+                    errorMessage = err;
                   } else {
-                    alert("PayPal Error: " + errString);
+                    // Try to stringify, but if empty object (common for Error objects), use toString
+                    const json = JSON.stringify(err);
+                    errorMessage = json === "{}" ? String(err) : json;
+                  }
+
+                  console.error("PayPal Error Message:", errorMessage);
+                  
+                  if (errorMessage.includes("RESOURCE_NOT_FOUND")) {
+                    alert("Configuration Error: The Plan ID is invalid. Please check your PayPal Dashboard.");
+                  } else {
+                    alert("PayPal Error: " + errorMessage);
                   }
                 }}
               />
