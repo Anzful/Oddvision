@@ -9,12 +9,13 @@ import { IconBrandGoogle, IconCheck, IconArrowRight, IconLogout } from "@tabler/
 function LoginContent() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check for errors in URL (from OAuth redirect)
+    // Check for errors in URL
     const error = searchParams.get("error");
     const errorDesc = searchParams.get("error_description");
     if (error) {
@@ -22,33 +23,21 @@ function LoginContent() {
       setErrorMessage(errorDesc || "Authentication failed. Please try again.");
     }
 
+    // Initial Check
     const checkSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      
-      if (session?.user) {
-        setUser(session.user);
-        // No auto-redirect anymore
-      } else {
-        setUser(null);
-      }
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
       setLoading(false);
-
-      const {
-        data: { subscription },
-      } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (session?.user) {
-          setUser(session.user);
-        } else {
-          setUser(null);
-        }
-      });
-
-      return () => subscription.unsubscribe();
     };
-
     checkSession();
+
+    // Listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, [searchParams]);
 
   const signInWithGoogle = async () => {
@@ -65,10 +54,10 @@ function LoginContent() {
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) console.error("Logout error:", error.message);
-    setUser(null);
-    router.refresh();
+    setIsSigningOut(true);
+    await supabase.auth.signOut();
+    // Force reload to clear any state
+    window.location.href = "/login";
   };
 
   return (
@@ -145,9 +134,16 @@ function LoginContent() {
                 
                 <button 
                   onClick={signOut}
-                  className="w-full flex items-center justify-center gap-2 bg-transparent hover:bg-white/5 text-gray-400 hover:text-white font-medium py-3 px-6 rounded-xl transition-colors border border-white/10"
+                  disabled={isSigningOut}
+                  className="w-full flex items-center justify-center gap-2 bg-transparent hover:bg-white/5 text-gray-400 hover:text-white font-medium py-3 px-6 rounded-xl transition-colors border border-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <IconLogout size={18} /> Sign Out
+                  {isSigningOut ? (
+                    <span className="animate-pulse">Signing out...</span>
+                  ) : (
+                    <>
+                      <IconLogout size={18} /> Sign Out
+                    </>
+                  )}
                 </button>
               </div>
             </div>
