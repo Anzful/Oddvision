@@ -1,12 +1,12 @@
+const clientId = process.env.PAYPAL_CLIENT_ID || process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID!;
+const clientSecret = process.env.PAYPAL_CLIENT_SECRET!;
+
 export const PAYPAL_CONFIG = {
-  clientId: process.env.PAYPAL_CLIENT_ID!,
-  clientSecret: process.env.PAYPAL_CLIENT_SECRET!,
+  clientId,
+  clientSecret,
   // Automatically switch URL based on the Key prefix
-  // Sandbox keys always start with "sb-" or "Alc..." (app ID) but mostly "sb" in recent accounts
-  // Safest bet: If the user provides PAYPAL_API_URL, use it. 
-  // If not, check if the client ID looks like a sandbox ID (optional), 
-  // BUT the user requested to depend on process env directly.
-  apiUrl: process.env.PAYPAL_API_URL || (process.env.PAYPAL_CLIENT_ID?.startsWith("sb") ? "https://api-m.sandbox.paypal.com" : "https://api-m.paypal.com"),
+  // Sandbox keys always start with "sb-"
+  apiUrl: process.env.PAYPAL_API_URL || (clientId?.startsWith("sb") ? "https://api-m.sandbox.paypal.com" : "https://api-m.paypal.com"),
   webhookId: process.env.PAYPAL_WEBHOOK_ID!,
 };
 
