@@ -6,8 +6,8 @@ import { supabase } from "../../../lib/supabaseClient";
 import { User } from "@supabase/supabase-js";
 import Link from "next/link";
 
-const PAYPAL_CLIENT_ID = "AVMtE7Ipcgzl1YXkJf3dnRNe9I_DDoKA5GhG6AR_BJQp0Ha-Vv-pUac2-ygfFdN6OzBOLads-PY-1zOi";
-const PAYPAL_PLAN_ID = "P-14C86532YB056482YNEQOTRI"; // Verify this Plan ID exists in your new App!
+const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID!;
+const PAYPAL_PLAN_ID = process.env.NEXT_PUBLIC_PAYPAL_PLAN_ID!;
 
 export default function Pricing() {
   const [user, setUser] = useState<User | null>(null);
@@ -116,7 +116,13 @@ export default function Pricing() {
                 onApprove={handleApprove}
                 onError={(err) => {
                   console.error("PayPal Error:", err);
-                  alert("PayPal Error: " + JSON.stringify(err));
+                  // Check for specific error indicating invalid Plan ID
+                  const errString = JSON.stringify(err);
+                  if (errString.includes("RESOURCE_NOT_FOUND")) {
+                    alert("PayPal Error: The Plan ID is invalid or does not exist in this PayPal account. Please check your Plan ID.");
+                  } else {
+                    alert("PayPal Error: " + errString);
+                  }
                 }}
               />
             </PayPalScriptProvider>

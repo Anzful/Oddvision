@@ -1,7 +1,6 @@
-# Don't commit your API key to git!
-secrets.js
 .env
 .env.local
+secrets.js
 
 # Node modules if you generate icons
 node_modules/

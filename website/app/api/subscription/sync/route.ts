@@ -2,13 +2,6 @@ import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { PAYPAL_CONFIG } from "@/lib/paypal-config";
 
-// Initialize Supabase Admin Client (Service Role)
-// Make sure SUPABASE_SERVICE_ROLE_KEY is in .env.local or Vercel Env Vars
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 async function getPayPalAccessToken() {
   const auth = Buffer.from(
     `${PAYPAL_CONFIG.clientId}:${PAYPAL_CONFIG.clientSecret}`
@@ -28,6 +21,13 @@ async function getPayPalAccessToken() {
 
 export async function POST(req: Request) {
   try {
+    // Initialize Supabase Admin Client (Service Role) inside the handler
+    // to prevent build-time errors if env vars are missing during static analysis
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
     const { subscriptionId, userId } = await req.json();
 
     if (!subscriptionId || !userId) {
