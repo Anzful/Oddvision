@@ -1,26 +1,25 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { PAYPAL_CONFIG } from "@/lib/paypal-config";
-
-async function getPayPalAccessToken() {
-  const auth = Buffer.from(
-    `${PAYPAL_CONFIG.clientId}:${PAYPAL_CONFIG.clientSecret}`
-  ).toString("base64");
-
-  const response = await fetch(`${PAYPAL_CONFIG.apiUrl}/v1/oauth2/token`, {
-    method: "POST",
-    body: "grant_type=client_credentials",
-    headers: {
-      Authorization: `Basic ${auth}`,
-    },
-  });
-
-  const data = await response.json();
-  return data.access_token;
-}
+import { getPayPalAccessToken } from "@/lib/paypal-api";
 
 export async function POST(req: Request) {
   try {
+    // Debugging Env Vars (Safe logging)
+    console.log("PayPal Sync Debug:", {
+      hasClientId: !!PAYPAL_CONFIG.clientId,
+      hasClientSecret: !!PAYPAL_CONFIG.clientSecret,
+      apiUrl: PAYPAL_CONFIG.apiUrl,
+      clientIdPrefix: PAYPAL_CONFIG.clientId ? PAYPAL_CONFIG.clientId.substring(0, 4) + "..." : "MISSING"
+    });
+
+    if (!PAYPAL_CONFIG.clientSecret) {
+      console.error("CRITICAL: PAYPAL_CLIENT_SECRET is missing on the server.");
+      return NextResponse.json({ 
+        error: "Server Configuration Error: Missing PayPal Secret" 
+      }, { status: 500 });
+    }
+
     // Initialize Supabase Admin Client (Service Role) inside the handler
     // to prevent build-time errors if env vars are missing during static analysis
     const supabaseAdmin = createClient(
@@ -40,7 +39,7 @@ export async function POST(req: Request) {
     try {
         const accessToken = await getPayPalAccessToken();
         if (!accessToken) {
-             throw new Error("Failed to obtain PayPal access token");
+             throw new Error("Failed to obtain PayPal access token (empty response)");
         }
 
         const subResponse = await fetch(`${PAYPAL_CONFIG.apiUrl}/v1/billing/subscriptions/${subscriptionId}`, {
@@ -52,14 +51,20 @@ export async function POST(req: Request) {
         if (!subResponse.ok) {
             const errorText = await subResponse.text();
             console.error("PayPal Subscription Check Failed:", subResponse.status, errorText);
-            throw new Error(`PayPal API Error: ${subResponse.status}`);
+            
+            // Handle 404 specifically (Wrong Environment)
+            if (subResponse.status === 404) {
+              throw new Error(`Subscription ID not found (Are you testing in the wrong mode? Live vs Sandbox?)`);
+            }
+            
+            throw new Error(`PayPal API Error: ${subResponse.status} ${subResponse.statusText}`);
         }
 
         const subData = await subResponse.json();
         
         if (subData.status !== 'ACTIVE') {
             console.error("Subscription not active:", subData.status);
-            return NextResponse.json({ error: "Subscription is not active" }, { status: 400 });
+            return NextResponse.json({ error: `Subscription is not active (Status: ${subData.status})` }, { status: 400 });
         }
         
         console.log("PayPal Verified: Active");
