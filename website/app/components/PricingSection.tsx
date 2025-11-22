@@ -48,8 +48,9 @@ export default function PricingSection() {
       if (response.ok) {
         alert("Subscription successful! Your Pro features are now active.");
       } else {
-        console.error("Failed to sync subscription");
-        alert("Payment successful, but account update failed. Please contact support.");
+        const errorData = await response.json();
+        console.error("Failed to sync subscription:", errorData);
+        alert(`Payment successful, but account update failed: ${errorData.error || "Unknown error"}. Please contact support.`);
       }
     } catch (err) {
       console.error("Sync error:", err);

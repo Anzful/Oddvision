@@ -39,12 +39,22 @@ export async function POST(req: Request) {
     // 1. Verify with PayPal API
     try {
         const accessToken = await getPayPalAccessToken();
+        if (!accessToken) {
+             throw new Error("Failed to obtain PayPal access token");
+        }
+
         const subResponse = await fetch(`${PAYPAL_CONFIG.apiUrl}/v1/billing/subscriptions/${subscriptionId}`, {
             headers: {
                 Authorization: `Bearer ${accessToken}`
             }
         });
         
+        if (!subResponse.ok) {
+            const errorText = await subResponse.text();
+            console.error("PayPal Subscription Check Failed:", subResponse.status, errorText);
+            throw new Error(`PayPal API Error: ${subResponse.status}`);
+        }
+
         const subData = await subResponse.json();
         
         if (subData.status !== 'ACTIVE') {
