@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { supabase } from "../../../lib/supabaseClient";
 import { User } from "@supabase/supabase-js";
 import { useSearchParams, useRouter } from "next/navigation";
+import { IconBrandGoogle, IconCheck, IconArrowRight, IconLogout } from "@tabler/icons-react";
 
 function LoginContent() {
   const [user, setUser] = useState<User | null>(null);
@@ -28,8 +29,7 @@ function LoginContent() {
       
       if (session?.user) {
         setUser(session.user);
-        // Redirect to home page if logged in
-        router.push("/");
+        // No auto-redirect anymore
       } else {
         setUser(null);
       }
@@ -40,7 +40,6 @@ function LoginContent() {
       } = supabase.auth.onAuthStateChange((_event, session) => {
         if (session?.user) {
           setUser(session.user);
-          router.push("/");
         } else {
           setUser(null);
         }
@@ -50,15 +49,16 @@ function LoginContent() {
     };
 
     checkSession();
-  }, [searchParams, router]);
+  }, [searchParams]);
 
   const signInWithGoogle = async () => {
-    // This is for the WEBSITE login
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        // Redirect to home page after login
         redirectTo: window.location.origin,
+        queryParams: {
+          prompt: "select_account",
+        },
       },
     });
     if (error) console.error("Login error:", error.message);
@@ -67,49 +67,104 @@ function LoginContent() {
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) console.error("Logout error:", error.message);
+    setUser(null);
   };
 
   return (
-    <div className="ov-privacy-container" style={{ textAlign: "center", paddingTop: "60px" }}>
-      <h1>Welcome Back</h1>
-      <p>Sign in to manage your subscription and view your usage stats.</p>
-
-      {errorMessage && (
-        <div style={{ 
-          margin: "20px auto", 
-          padding: "12px", 
-          background: "rgba(239, 68, 68, 0.1)", 
-          border: "1px solid rgba(239, 68, 68, 0.2)", 
-          borderRadius: "8px", 
-          color: "#f87171",
-          maxWidth: "400px" 
-        }}>
-          ⚠️ {errorMessage}
+    <div className="min-h-[80vh] flex items-center justify-center p-4">
+      <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+        
+        {/* Left Side - Context */}
+        <div className="hidden md:block">
+          <h1 className="text-4xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+            Unlock the full power of Oddvision
+          </h1>
+          <div className="space-y-6">
+            <div className="flex gap-4">
+              <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center border border-purple-500/20">
+                <IconCheck className="text-purple-400" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg">Sync Across Devices</h3>
+                <p className="text-gray-400">Access your subscription on any computer.</p>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <div className="w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
+                <IconCheck className="text-cyan-400" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg">Unlimited AI Analysis</h3>
+                <p className="text-gray-400">Go Pro to remove all limits.</p>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <div className="w-10 h-10 rounded-lg bg-pink-500/10 flex items-center justify-center border border-pink-500/20">
+                <IconCheck className="text-pink-400" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg">Secure & Private</h3>
+                <p className="text-gray-400">Your data is encrypted and never sold.</p>
+              </div>
+            </div>
+          </div>
         </div>
-      )}
 
-      <div style={{ marginTop: "40px" }}>
-        {loading ? (
-          <button className="ov-btn ov-btn--primary" disabled>
-            Loading...
-          </button>
-        ) : user ? (
-          <>
-            <p style={{ marginBottom: "20px", color: "var(--text)" }}>
-              Signed in as: {user.email}
-            </p>
-            <p style={{ marginBottom: "20px", fontSize: "14px", color: "var(--text-dim)" }}>
-              Redirecting to home...
-            </p>
-            <button onClick={signOut} className="ov-btn ov-btn--primary">
-              Sign Out
+        {/* Right Side - Login Box */}
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-8 backdrop-blur-xl shadow-2xl">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold mb-2">Welcome Back</h2>
+            <p className="text-gray-400">Sign in to continue</p>
+          </div>
+
+          {errorMessage && (
+            <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm text-center">
+              {errorMessage}
+            </div>
+          )}
+
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+            </div>
+          ) : user ? (
+            <div className="text-center py-4">
+              <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 mb-6">
+                <p className="text-green-400 font-medium mb-1">Logged in as</p>
+                <p className="text-white break-all">{user.email}</p>
+              </div>
+              
+              <div className="flex flex-col gap-3">
+                <button 
+                  onClick={() => router.push('/')}
+                  className="w-full flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-900 font-bold py-3 px-6 rounded-xl transition-all transform hover:scale-[1.02]"
+                >
+                  Continue to App <IconArrowRight size={18} />
+                </button>
+                
+                <button 
+                  onClick={signOut}
+                  className="w-full flex items-center justify-center gap-2 bg-transparent hover:bg-white/5 text-gray-400 hover:text-white font-medium py-3 px-6 rounded-xl transition-colors border border-white/10"
+                >
+                  <IconLogout size={18} /> Sign Out
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={signInWithGoogle}
+              className="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-50 text-gray-900 font-bold py-3 px-6 rounded-xl transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <IconBrandGoogle size={20} />
+              Continue with Google
             </button>
-          </>
-        ) : (
-          <button onClick={signInWithGoogle} className="ov-btn ov-btn--primary">
-            Log In with Google
-          </button>
-        )}
+          )}
+          
+          <p className="text-center mt-6 text-xs text-gray-500">
+            By continuing, you agree to our <a href="/privacy" className="underline hover:text-gray-300">Privacy Policy</a>
+          </p>
+        </div>
+
       </div>
     </div>
   );
@@ -117,7 +172,7 @@ function LoginContent() {
 
 export default function Login() {
   return (
-    <Suspense fallback={<div style={{ color: "white", textAlign: "center", padding: "40px" }}>Loading Login...</div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
       <LoginContent />
     </Suspense>
   );
