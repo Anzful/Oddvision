@@ -10,6 +10,7 @@ import {
   IconEye,
 } from "@tabler/icons-react";
 import Reveal from "../components/Reveal";
+import PricingSection from "../components/PricingSection";
 
 export default function Home() {
   return (
@@ -163,6 +164,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Pricing */}
+      <PricingSection />
 
       {/* Providers */}
       <section id="providers" className="ov-section">
