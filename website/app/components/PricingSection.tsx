@@ -9,6 +9,20 @@ import Link from "next/link";
 const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID!;
 const PAYPAL_PLAN_ID = process.env.NEXT_PUBLIC_PAYPAL_PLAN_ID!;
 
+const fetchProStatus = async (userId: string) => {
+  const { data: usage, error } = await supabase
+    .from('user_usage')
+    .select('*')
+    .eq('user_id', userId)
+    .maybeSingle();
+  
+  if (error) {
+    console.error("Error fetching usage:", error);
+    return null;
+  }
+  return usage;
+};
+
 export default function PricingSection() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -16,53 +30,57 @@ export default function PricingSection() {
   const [subscriptionData, setSubscriptionData] = useState<any>(null);
 
   useEffect(() => {
-    // Initial session check
-    const initSession = async () => {
+    // 1. Setup Timeout Failsafe
+    const timeoutId = setTimeout(() => {
+      setLoading(false);
+    }, 5000);
+
+    const init = async () => {
       try {
+        // 2. Initial Check
         const { data: { session } } = await supabase.auth.getSession();
         const currentUser = session?.user ?? null;
+        
+        // Update user state immediately
         setUser(currentUser);
 
         if (currentUser) {
-          // Fetch Pro Status
-          const { data: usage } = await supabase
-            .from('user_usage')
-            .select('*')
-            .eq('user_id', currentUser.id)
-            .maybeSingle();
-          
+          const usage = await fetchProStatus(currentUser.id);
           if (usage) {
             setIsPro(!!usage.is_pro);
             setSubscriptionData(usage);
+          } else {
+            setIsPro(false);
+            setSubscriptionData(null);
           }
+        } else {
+          setIsPro(false);
+          setSubscriptionData(null);
         }
       } catch (error) {
         console.error("Session init error:", error);
       } finally {
+        // 3. Clear Loading
         setLoading(false);
+        clearTimeout(timeoutId);
       }
     };
 
-    initSession();
+    init();
 
-    // Set up real-time auth listener
+    // 4. Auth Listener (Non-blocking)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("Auth state changed:", event, session?.user?.id);
       const currentUser = session?.user ?? null;
       
-      // Only update state if user actually changed to prevent infinite loops
-      // or unnecessary re-fetches
+      // Update user state
       setUser(currentUser);
 
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        setLoading(true); // Show loading briefly while fetching status
+        // We do NOT set loading=true here to avoid flashing/stuck loader.
+        // Instead, we fetch in background and update state when ready.
         if (currentUser) {
-            const { data: usage } = await supabase
-            .from('user_usage')
-            .select('*')
-            .eq('user_id', currentUser.id)
-            .maybeSingle();
-            
+            const usage = await fetchProStatus(currentUser.id);
             if (usage) {
                 setIsPro(!!usage.is_pro);
                 setSubscriptionData(usage);
@@ -71,16 +89,15 @@ export default function PricingSection() {
                 setSubscriptionData(null);
             }
         }
-        setLoading(false);
       } else if (event === 'SIGNED_OUT') {
         setIsPro(false);
         setSubscriptionData(null);
-        setLoading(false);
       }
     });
 
     return () => {
       subscription.unsubscribe();
+      clearTimeout(timeoutId);
     };
   }, []);
 
