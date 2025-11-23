@@ -51,7 +51,11 @@ export default function Header() {
   }, []);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
     setUser(null);
     setIsPro(false);
     setIsMenuOpen(false);
