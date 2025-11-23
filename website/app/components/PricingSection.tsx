@@ -11,18 +11,23 @@ const PAYPAL_PLAN_ID = process.env.NEXT_PUBLIC_PAYPAL_PLAN_ID!;
 
 const fetchProStatus = async (userId: string) => {
   console.log("Fetching usage for:", userId);
-  const { data: usage, error } = await supabase
-    .from('user_usage')
-    .select('*')
-    .eq('user_id', userId)
-    .maybeSingle();
-  
-  if (error) {
-    console.error("Error fetching usage:", error);
+  try {
+    const { data: usage, error } = await supabase
+      .from('user_usage')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+    
+    if (error) {
+      console.error("Error fetching usage:", error);
+      return null;
+    }
+    console.log("Usage data:", usage);
+    return usage;
+  } catch (err) {
+    console.error("Exception fetching usage:", err);
     return null;
   }
-  console.log("Usage data:", usage);
-  return usage;
 };
 
 export default function PricingSection() {
@@ -33,38 +38,44 @@ export default function PricingSection() {
 
   useEffect(() => {
     let mounted = true;
+    let initialLoadComplete = false;
 
     const init = async () => {
       try {
-        // Use getUser() instead of getSession() to validate the token with the server
-        // This ensures RLS policies work correctly on page refresh
         const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
         
         if (userError) {
-           // If getUser fails (e.g. network), fall back to session
            console.warn("getUser failed, checking session:", userError);
            const { data: { session } } = await supabase.auth.getSession();
-           if (session?.user) {
+           if (session?.user && mounted) {
                setUser(session.user);
-               // Try fetching status anyway
                const usage = await fetchProStatus(session.user.id);
-               if (usage && mounted) {
-                   setIsPro(!!usage.is_pro);
-                   setSubscriptionData(usage);
+               if (mounted) {
+                   if (usage) {
+                       setIsPro(!!usage.is_pro);
+                       setSubscriptionData(usage);
+                   } else {
+                       setIsPro(false);
+                       setSubscriptionData(null);
+                   }
                }
            } else {
-               if (mounted) setUser(null);
+               if (mounted) {
+                   setUser(null);
+                   setIsPro(false);
+                   setSubscriptionData(null);
+               }
            }
         } else if (currentUser) {
           if (mounted) setUser(currentUser);
           const usage = await fetchProStatus(currentUser.id);
-          if (usage && mounted) {
-            setIsPro(!!usage.is_pro);
-            setSubscriptionData(usage);
-          } else {
-            if (mounted) {
-                setIsPro(false);
-                setSubscriptionData(null);
+          if (mounted) {
+            if (usage) {
+              setIsPro(!!usage.is_pro);
+              setSubscriptionData(usage);
+            } else {
+              setIsPro(false);
+              setSubscriptionData(null);
             }
           }
         } else {
@@ -77,7 +88,10 @@ export default function PricingSection() {
       } catch (error) {
         console.error("Session init error:", error);
       } finally {
-        if (mounted) setLoading(false);
+        if (mounted) {
+          setLoading(false);
+          initialLoadComplete = true;
+        }
       }
     };
 
@@ -90,7 +104,12 @@ export default function PricingSection() {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
 
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+      // Skip if initial load hasn't completed (prevents double-fetch on mount)
+      if (!initialLoadComplete && event === 'INITIAL_SESSION') {
+        return;
+      }
+
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         if (currentUser) {
             const usage = await fetchProStatus(currentUser.id);
             if (mounted) {
@@ -101,12 +120,21 @@ export default function PricingSection() {
                     setIsPro(false);
                     setSubscriptionData(null);
                 }
+                // Ensure loading is off after fetch completes
+                setLoading(false);
+            }
+        } else {
+            if (mounted) {
+                setIsPro(false);
+                setSubscriptionData(null);
+                setLoading(false);
             }
         }
       } else if (event === 'SIGNED_OUT') {
         if (mounted) {
             setIsPro(false);
             setSubscriptionData(null);
+            setLoading(false);
         }
       }
     });
@@ -157,7 +185,7 @@ export default function PricingSection() {
         </div>
 
         <div className="max-w-md mx-auto bg-white/5 border border-white/10 rounded-2xl p-8 backdrop-blur-sm relative overflow-hidden">
-          {!isPro && (
+          {!isPro && !loading && (
             <div className="absolute top-4 right-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg transform rotate-3 hover:scale-105 transition-transform">
               50% OFF
             </div>
