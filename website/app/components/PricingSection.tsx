@@ -16,42 +16,77 @@ export default function PricingSection() {
   const [subscriptionData, setSubscriptionData] = useState<any>(null);
 
   useEffect(() => {
-    // Debug Environment Variables
-    console.log("PayPal Debug Config:", {
-      clientIdPrefix: PAYPAL_CLIENT_ID ? PAYPAL_CLIENT_ID.substring(0, 4) + "..." : "Missing",
-      planId: PAYPAL_PLAN_ID,
-      envVarClientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ? "Loaded" : "Not Loaded"
-    });
+    // Initial session check
+    const initSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
 
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+        if (currentUser) {
+          // Fetch Pro Status
+          const { data: usage } = await supabase
+            .from('user_usage')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .maybeSingle();
+          
+          if (usage) {
+            setIsPro(!!usage.is_pro);
+            setSubscriptionData(usage);
+          }
+        }
+      } catch (error) {
+        console.error("Session init error:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initSession();
+
+    // Set up real-time auth listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth state changed:", event, session?.user?.id);
       const currentUser = session?.user ?? null;
+      
+      // Only update state if user actually changed to prevent infinite loops
+      // or unnecessary re-fetches
       setUser(currentUser);
 
-      if (currentUser) {
-        // Fetch Pro Status
-        // We use select('*') to be safe against missing columns (like next_billing_date)
-        const { data: usage } = await supabase
-          .from('user_usage')
-          .select('*')
-          .eq('user_id', currentUser.id)
-          .maybeSingle();
-        
-        if (usage) {
-          setIsPro(!!usage.is_pro);
-          setSubscriptionData(usage);
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        setLoading(true); // Show loading briefly while fetching status
+        if (currentUser) {
+            const { data: usage } = await supabase
+            .from('user_usage')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .maybeSingle();
+            
+            if (usage) {
+                setIsPro(!!usage.is_pro);
+                setSubscriptionData(usage);
+            } else {
+                setIsPro(false);
+                setSubscriptionData(null);
+            }
         }
+        setLoading(false);
+      } else if (event === 'SIGNED_OUT') {
+        setIsPro(false);
+        setSubscriptionData(null);
+        setLoading(false);
       }
+    });
 
-      setLoading(false);
+    return () => {
+      subscription.unsubscribe();
     };
-    checkSession();
   }, []);
 
   const handleApprove = async (data: any, actions: any) => {
     console.log("Subscription approved:", data.subscriptionID);
     
-    // Call our backend to link the subscription to the user
     try {
       const response = await fetch('/api/subscription/sync', {
         method: 'POST',
@@ -67,7 +102,6 @@ export default function PricingSection() {
       if (response.ok) {
         alert("Subscription successful! Your Pro features are now active.");
         setIsPro(true); // Optimistic update
-        // Reload page to refresh state fully
         window.location.reload();
       } else {
         const errorData = await response.json();
@@ -90,7 +124,6 @@ export default function PricingSection() {
         </div>
 
         <div className="max-w-md mx-auto bg-white/5 border border-white/10 rounded-2xl p-8 backdrop-blur-sm relative overflow-hidden">
-          {/* Discount Badge - Hide if Pro */}
           {!isPro && (
             <div className="absolute top-4 right-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg transform rotate-3 hover:scale-105 transition-transform">
               50% OFF
@@ -157,7 +190,7 @@ export default function PricingSection() {
                   createSubscription={(data, actions) => {
                     return actions.subscription.create({
                       plan_id: PAYPAL_PLAN_ID,
-                      custom_id: user.id // Link payment to Supabase User ID
+                      custom_id: user.id 
                     });
                   }}
                   onApprove={handleApprove}
@@ -170,7 +203,6 @@ export default function PricingSection() {
                     } else if (typeof err === "string") {
                       errorMessage = err;
                     } else {
-                      // Try to stringify, but if empty object (common for Error objects), use toString
                       const json = JSON.stringify(err);
                       errorMessage = json === "{}" ? String(err) : json;
                     }
