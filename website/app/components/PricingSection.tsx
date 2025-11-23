@@ -35,7 +35,7 @@ export default function PricingSection() {
           .from('user_usage')
           .select('*')
           .eq('user_id', currentUser.id)
-          .single();
+          .maybeSingle();
         
         if (usage) {
           setIsPro(!!usage.is_pro);

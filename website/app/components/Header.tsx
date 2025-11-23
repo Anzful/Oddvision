@@ -23,7 +23,7 @@ export default function Header() {
           .from('user_usage')
           .select('*')
           .eq('user_id', session.user.id)
-          .single();
+          .maybeSingle();
         
         if (data?.is_pro) setIsPro(true);
       }
@@ -49,17 +49,23 @@ export default function Header() {
   }, []);
 
   const handleSignOut = async () => {
-    // Use Promise.race to prevent hanging if Supabase client is stuck (common in Chrome with bad state)
-    const timeout = new Promise(resolve => setTimeout(resolve, 1000)); // 1s max wait
+    console.log("Sign out clicked");
+    // Use Promise.race to prevent hanging
+    const timeout = new Promise(resolve => setTimeout(resolve, 1000)); 
     try {
       await Promise.race([supabase.auth.signOut(), timeout]);
     } catch (err) {
       console.error("Logout error:", err);
     }
+    
+    // Manually clear local storage to be safe
+    localStorage.clear();
+    sessionStorage.clear();
+    
     setUser(null);
     setIsPro(false);
     setIsMenuOpen(false);
-    window.location.href = "/"; // Force reload/navigation to clear state
+    window.location.href = "/"; 
   };
 
   return (
