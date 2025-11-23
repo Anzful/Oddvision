@@ -15,6 +15,8 @@ function LoginContent() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log("LoginContent mounted or params changed");
+    
     // Check for errors in URL
     const error = searchParams.get("error");
     const errorDesc = searchParams.get("error_description");
@@ -23,24 +25,45 @@ function LoginContent() {
       setErrorMessage(errorDesc || "Authentication failed. Please try again.");
     }
 
+    // Failsafe timeout in case Supabase hangs
+    const timer = setTimeout(() => {
+      console.warn("Session check timed out, forcing loading false");
+      setLoading(false);
+    }, 5000);
+
     // Initial Check
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-      setLoading(false);
+      try {
+        console.log("Checking session...");
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+            console.error("Session check error:", error);
+        }
+        console.log("Session result:", !!session);
+        setUser(session?.user ?? null);
+      } catch (err) {
+        console.error("Unexpected session check error:", err);
+      } finally {
+        setLoading(false);
+      }
     };
     checkSession();
 
     // Listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Auth state change:", event, !!session);
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+        clearTimeout(timer);
+        subscription.unsubscribe();
+    };
   }, [searchParams]);
 
   const signInWithGoogle = async () => {
+    console.log("Starting Google Sign In...");
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -55,7 +78,11 @@ function LoginContent() {
 
   const signOut = async () => {
     setIsSigningOut(true);
-    await supabase.auth.signOut();
+    try {
+        await supabase.auth.signOut();
+    } catch (err) {
+        console.error("Sign out error:", err);
+    }
     // Force reload to clear any state
     window.location.href = "/login";
   };
@@ -114,8 +141,9 @@ function LoginContent() {
           )}
 
           {loading ? (
-            <div className="flex justify-center py-8">
+            <div className="flex flex-col items-center justify-center py-8 gap-3">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+              <span className="text-gray-400 text-sm">Connecting...</span>
             </div>
           ) : user ? (
             <div className="text-center py-4">
