@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { supabase } from "../../../lib/supabaseClient";
 import { User } from "@supabase/supabase-js";
 import { useSearchParams, useRouter } from "next/navigation";
-import { IconBrandGoogle, IconCheck, IconArrowRight, IconLogout } from "@tabler/icons-react";
+import { IconBrandGoogle, IconCheck, IconArrowRight, IconLogout, IconRefresh } from "@tabler/icons-react";
 
 function LoginContent() {
   const [user, setUser] = useState<User | null>(null);
@@ -15,8 +15,6 @@ function LoginContent() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log("LoginContent mounted or params changed");
-    
     // Check for errors in URL
     const error = searchParams.get("error");
     const errorDesc = searchParams.get("error_description");
@@ -31,21 +29,15 @@ function LoginContent() {
         console.warn("Session check timed out, forcing loading false");
         setLoading(false);
       }
-    }, 3000); // Reduced to 3s for faster feedback
+    }, 3000);
 
     // Initial Check
     const checkSession = async () => {
       try {
-        console.log("Checking session...");
-        // Use getUser() instead of getSession() for security/reliability in newer Supabase versions
-        // but getSession is fine for client-side check.
-        // Adding a small delay to allow client to hydrate? No.
-        
         const { data, error } = await supabase.auth.getSession();
         if (error) {
             console.error("Session check error:", error);
         }
-        console.log("Session result:", !!data.session);
         setUser(data.session?.user ?? null);
       } catch (err) {
         console.error("Unexpected session check error:", err);
@@ -57,7 +49,6 @@ function LoginContent() {
 
     // Listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Auth state change:", event, !!session);
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
         setUser(session?.user ?? null);
         setLoading(false);
@@ -74,11 +65,10 @@ function LoginContent() {
   }, [searchParams]);
 
   const signInWithGoogle = async () => {
-    console.log("Starting Google Sign In...");
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: window.location.origin, // Ensure this matches your Supabase Auth Redirect URL
+        redirectTo: window.location.origin,
         queryParams: {
           access_type: "offline",
           prompt: "consent",
@@ -99,6 +89,20 @@ function LoginContent() {
         console.error("Sign out error:", err);
     }
     window.location.href = "/login";
+  };
+
+  const clearBrowserData = () => {
+    if (confirm("This will clear your local session data and refresh the page. Continue?")) {
+        localStorage.clear();
+        sessionStorage.clear();
+        // Clear cookies
+        document.cookie.split(";").forEach((c) => {
+            document.cookie = c
+            .replace(/^ +/, "")
+            .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+        });
+        window.location.reload();
+    }
   };
 
   return (
@@ -190,13 +194,23 @@ function LoginContent() {
               </div>
             </div>
           ) : (
-            <button
-              onClick={signInWithGoogle}
-              className="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-50 text-gray-900 font-bold py-3 px-6 rounded-xl transition-all transform hover:scale-[1.02] active:scale-[0.98]"
-            >
-              <IconBrandGoogle size={20} />
-              Continue with Google
-            </button>
+            <div className="flex flex-col gap-4">
+                <button
+                  onClick={signInWithGoogle}
+                  className="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-50 text-gray-900 font-bold py-3 px-6 rounded-xl transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <IconBrandGoogle size={20} />
+                  Continue with Google
+                </button>
+                
+                <button
+                    onClick={clearBrowserData}
+                    className="text-xs text-gray-500 hover:text-gray-300 flex items-center justify-center gap-1 mt-2"
+                    title="Fix stuck login issues"
+                >
+                    <IconRefresh size={12} /> Reset Login Data
+                </button>
+            </div>
           )}
           
           <p className="text-center mt-6 text-xs text-gray-500">
