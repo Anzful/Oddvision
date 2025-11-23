@@ -83,27 +83,34 @@ export async function POST(req: Request) {
         }, { status: 500 });
     }
 
-    // 2. Update user_usage table
-    const updateData: any = { is_pro: true };
+    // 2. Update user_usage table (Using Upsert to guarantee row exists)
+    const updateData: any = { 
+        user_id: userId,
+        is_pro: true,
+        // Reset prompts count if upgrading to Pro, or keep existing logic
+        // Typically you don't want to wipe usage stats, but we must ensure the row exists.
+        // If row exists, this merges. If not, it creates.
+    };
     
     if (nextBillingDate) {
        updateData.next_billing_date = nextBillingDate;
     }
 
+    // Use upsert to handle missing rows gracefully
     const { error } = await supabaseAdmin
       .from("user_usage")
-      .update(updateData)
-      .eq("user_id", userId);
+      .upsert(updateData, { onConflict: 'user_id' });
 
     if (error) {
       console.error("Supabase update error:", error);
       // Fallback: If updating 'next_billing_date' failed (e.g. column missing), try updating just is_pro
       if (error.message?.includes('next_billing_date')) {
          console.warn("Column 'next_billing_date' might be missing. Retrying with only is_pro.");
+         
+         // Retry upsert without date
          const { error: retryError } = await supabaseAdmin
           .from("user_usage")
-          .update({ is_pro: true })
-          .eq("user_id", userId);
+          .upsert({ user_id: userId, is_pro: true }, { onConflict: 'user_id' });
           
           if (retryError) {
              return NextResponse.json({ error: "Database update failed (retry)" }, { status: 500 });
