@@ -74,7 +74,7 @@ function capturePageContext() {
   }
 
   pageContent = extractPageText();
-  console.log('Oddvision: Captured', pageContent.length, 'characters from page');
+  
   
   // Show yellow indicator dot
   showIndicatorDot('yellow');
@@ -125,11 +125,11 @@ async function sendContextToAI() {
     // Handle response format
     if (response && typeof response === 'object' && response.response) {
       lastAIResponse = response.response;
-      const modelUsed = response.model || 'unknown';
-      console.log(`✨ Oddvision: AI response received from ${modelUsed.toUpperCase()}`);
+      // const modelUsed = response.model || 'unknown';
+      // console.log(`✨ Oddvision: AI response received from ${modelUsed.toUpperCase()}`);
     } else {
       lastAIResponse = response;
-      console.log(`✨ Oddvision: AI response received`);
+      // console.log(`✨ Oddvision: AI response received`);
     }
     
     // If overlay is already visible, update it
@@ -137,7 +137,7 @@ async function sendContextToAI() {
       displayAIResponse(lastAIResponse);
     }
   } catch (error) {
-    console.error('Oddvision AI Error:', error);
+    // console.error('Oddvision AI Error:', error);
     showNotification(`❌ AI Error: ${error.message}`, 'error');
   } finally {
     isProcessing = false;

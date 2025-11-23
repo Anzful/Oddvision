@@ -1,10 +1,10 @@
 // Oddvision Background Service Worker
 // Configuration is loaded from secrets.js
-console.log("🔮 Oddvision: Service Worker Starting...");
+// console.log("🔮 Oddvision: Service Worker Starting...");
 
 try {
   importScripts('secrets.js', 'lib/supabase.js', 'lib/supabase-setup.js');
-  console.log("🔮 Oddvision: Scripts imported successfully");
+  // console.log("🔮 Oddvision: Scripts imported successfully");
 } catch (e) {
   console.error("🔮 Oddvision: Script import failed", e);
 }
@@ -19,7 +19,7 @@ let lastRequestTime = 0;
 
 // Handle keyboard shortcut command
 chrome.commands.onCommand.addListener((command) => {
-  console.log("🔮 Oddvision: Command received:", command); // DEBUG LOG
+  // console.log("🔮 Oddvision: Command received:", command);
   
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (tabs[0]) {
@@ -36,13 +36,13 @@ chrome.commands.onCommand.addListener((command) => {
       }
       
       if (action) {
-        console.log("🔮 Oddvision: Sending action to tab:", action, tabs[0].id); // DEBUG LOG
+        // console.log("🔮 Oddvision: Sending action to tab:", action, tabs[0].id);
         chrome.tabs.sendMessage(tabs[0].id, { action }).catch(err => {
-          console.log('Oddvision: Could not send message to tab (Tab might be restricted or loading)', err);
+          // console.log('Oddvision: Could not send message to tab (Tab might be restricted or loading)', err);
         });
       }
     } else {
-      console.log("🔮 Oddvision: No active tab found");
+      // console.log("🔮 Oddvision: No active tab found");
     }
   });
 });
@@ -69,14 +69,14 @@ async function addToQueue(prompt, sendResponse, tabId) {
   
   // Always add to queue first
   requestQueue.push({ prompt, sendResponse, tabId, timestamp: now });
-  console.log(`🔮 Oddvision: Queued request #${totalProcessed + requestQueue.length} (${requestQueue.length} in queue)`);
+  // console.log(`🔮 Oddvision: Queued request #${totalProcessed + requestQueue.length} (${requestQueue.length} in queue)`);
   
   // Notify all tabs about queue update
   notifyQueueUpdate();
   
   // Smart queueing: If we're under rate limit and not already processing, start immediately
   if (!isProcessingQueue && timeSinceLastRequest >= RATE_LIMIT_DELAY) {
-    console.log(`⚡ Oddvision: Starting queue processing immediately`);
+    // console.log(`⚡ Oddvision: Starting queue processing immediately`);
     lastRequestTime = now;
     processQueue();
   } else if (!isProcessingQueue) {
@@ -112,14 +112,14 @@ async function processRequest(prompt, sendResponse, tabId, timestamp) {
     }
 
     if (waitTime > 0.1) {
-      console.log(`⚡ Oddvision: Processing request #${totalProcessed} (waited ${waitTime}s)`);
+      // console.log(`⚡ Oddvision: Processing request #${totalProcessed} (waited ${waitTime}s)`);
     }
 
     // Check usage limits via RPC
     const { data: usageData, error: usageError } = await supabase.rpc('increment_prompt_usage');
     
     if (usageError) {
-      console.error('Usage check failed:', usageError);
+      // console.error('Usage check failed:', usageError);
       // Fail open or closed? Closed for now to prevent abuse if DB is down, but be careful.
       // Actually, if RPC fails, it might be network. Let's fail safe if possible, but strict for limits.
       // If error is "function not found", it means SQL wasn't run.
@@ -128,7 +128,7 @@ async function processRequest(prompt, sendResponse, tabId, timestamp) {
     }
 
     if (usageData && !usageData.allowed) {
-      console.warn('Oddvision: Usage limit reached');
+      // console.warn('Oddvision: Usage limit reached');
       sendResponse({ 
         success: false, 
         error: usageData.error || "Weekly limit reached (3/3). Wait for reset or upgrade." 
@@ -137,7 +137,7 @@ async function processRequest(prompt, sendResponse, tabId, timestamp) {
     }
 
     const remaining = usageData?.remaining;
-    console.log(`Oddvision: Usage approved. Remaining: ${remaining}`);
+    // console.log(`Oddvision: Usage approved. Remaining: ${remaining}`);
 
     const result = await callAIWithFailover(prompt);
     
@@ -146,9 +146,9 @@ async function processRequest(prompt, sendResponse, tabId, timestamp) {
     trackUsage(prompt, result.model);
     
     sendResponse({ success: true, response: result.response, model: result.model, remaining });
-    console.log(`✅ Oddvision: Completed request #${totalProcessed} via ${result.model}`);
+    // console.log(`✅ Oddvision: Completed request #${totalProcessed} via ${result.model}`);
   } catch (error) {
-    console.error(`❌ Oddvision: Failed request #${totalProcessed}:`, error.message);
+    // console.error(`❌ Oddvision: Failed request #${totalProcessed}:`, error.message);
     sendResponse({ success: false, error: error.message });
   }
 }
@@ -176,7 +176,7 @@ async function processQueue() {
   
   isProcessingQueue = false;
   notifyQueueUpdate();
-  console.log(`🎉 Oddvision: Queue cleared! Total processed: ${totalProcessed}`);
+  // console.log(`🎉 Oddvision: Queue cleared! Total processed: ${totalProcessed}`);
 }
 
 // Automatic failover: Try providers in order until one works
@@ -193,17 +193,17 @@ async function callAIWithFailover(prompt) {
   // Try each provider in order
   for (const provider of providers) {
     if (!provider.key) {
-      console.log(`Oddvision: Skipping ${provider.name} (no API key)`);
+      // console.log(`Oddvision: Skipping ${provider.name} (no API key)`);
       continue;
     }
     
     try {
-      console.log(`Oddvision: Trying ${provider.name}...`);
+      // console.log(`Oddvision: Trying ${provider.name}...`);
       const response = await provider.fn(provider.key, prompt);
-      console.log(`Oddvision: ✅ Success with ${provider.name}`);
+      // console.log(`Oddvision: ✅ Success with ${provider.name}`);
       return { response, model: provider.name };
     } catch (error) {
-      console.log(`Oddvision: ❌ ${provider.name} failed:`, error.message);
+      // console.log(`Oddvision: ❌ ${provider.name} failed:`, error.message);
       lastError = error;
       // Continue to next provider
     }
@@ -273,7 +273,7 @@ async function callOpenRouter(apiKey, prompt) {
   
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('OpenRouter error response:', errorText);
+    // console.error('OpenRouter error response:', errorText);
     let errorMsg = errorText;
     try {
       const error = JSON.parse(errorText);
@@ -292,7 +292,7 @@ async function callOpenRouter(apiKey, prompt) {
 chrome.runtime.onInstalled.addListener(() => {
   // Auto-enable on install; no API keys are stored in chrome.storage
   chrome.storage.local.set({ enabled: true }, () => {
-    console.log('Oddvision: Extension installed with default settings');
+    // console.log('Oddvision: Extension installed with default settings');
   });
 });
 
@@ -303,7 +303,6 @@ async function trackUsage(prompt, model) {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       // Optional: Log anonymous usage or skip
-      console.log('Oddvision: Usage not tracked (no session)');
       return;
     }
 
@@ -325,11 +324,9 @@ async function trackUsage(prompt, model) {
       });
       
     if (error) {
-      console.error('Supabase tracking error:', error.message);
-    } else {
-      console.log('Oddvision: Usage tracked successfully');
+      // Silent fail in production
     }
   } catch (err) {
-    console.error('Supabase tracking exception:', err);
+    // Silent fail in production
   }
 }

@@ -31,7 +31,7 @@ async function checkSession() {
       showView('auth');
     }
   } catch (err) {
-    console.error('Session check failed:', err);
+    // console.error('Session check failed:', err);
     showView('auth');
   }
 }
@@ -72,7 +72,7 @@ async function fetchUsage(user) {
             .single();
 
         if (error && error.code !== 'PGRST116') {
-            console.error('Error fetching usage:', error);
+            // console.error('Error fetching usage:', error);
             usageCountEl.textContent = 'Error';
             return;
         }
@@ -123,7 +123,7 @@ async function fetchUsage(user) {
         }
         
     } catch (err) {
-        console.error('Usage fetch error:', err);
+        // console.error('Usage fetch error:', err);
     }
 }
 
@@ -131,7 +131,7 @@ async function fetchUsage(user) {
 loginBtn.addEventListener('click', async () => {
   try {
     const redirectUrl = chrome.identity.getRedirectURL();
-    console.log('Redirect URL:', redirectUrl); 
+    // console.log('Redirect URL:', redirectUrl); 
     // User must add this URL to Supabase > Authentication > URL Configuration > Redirect URLs
 
     // 1. Get Auth URL
@@ -151,7 +151,7 @@ loginBtn.addEventListener('click', async () => {
     }, async (responseUrl) => {
       // Handle User Cancelation or Errors
       if (chrome.runtime.lastError) {
-        console.warn('Auth flow warning:', chrome.runtime.lastError.message);
+        // console.warn('Auth flow warning:', chrome.runtime.lastError.message);
         // Don't alert immediately if it's just "User cancelled" which can be noisy
         if (!chrome.runtime.lastError.message.includes("User cancelled")) {
             alert('Login failed: ' + chrome.runtime.lastError.message);
@@ -185,17 +185,17 @@ loginBtn.addEventListener('click', async () => {
             const error = params.get('error');
             
             if (errorDesc || error) {
-                console.error('Supabase Auth Error:', error, errorDesc);
+                // console.error('Supabase Auth Error:', error, errorDesc);
                 alert('Login failed: ' + (errorDesc || error));
             } else {
                  // Fallback if no tokens and no error (shouldn't happen on success)
-                 console.warn('No access token found in response URL:', responseUrl);
+                 // console.warn('No access token found in response URL:', responseUrl);
             }
         }
       }
     });
   } catch (err) {
-    console.error('Login failed:', err);
+    // console.error('Login failed:', err);
     alert('Login init failed: ' + err.message);
   }
 });
