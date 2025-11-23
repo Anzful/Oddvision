@@ -10,6 +10,7 @@ const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID!;
 const PAYPAL_PLAN_ID = process.env.NEXT_PUBLIC_PAYPAL_PLAN_ID!;
 
 const fetchProStatus = async (userId: string) => {
+  console.log("Fetching usage for:", userId);
   const { data: usage, error } = await supabase
     .from('user_usage')
     .select('*')
@@ -20,6 +21,7 @@ const fetchProStatus = async (userId: string) => {
     console.error("Error fetching usage:", error);
     return null;
   }
+  console.log("Usage data:", usage);
   return usage;
 };
 
@@ -30,74 +32,88 @@ export default function PricingSection() {
   const [subscriptionData, setSubscriptionData] = useState<any>(null);
 
   useEffect(() => {
-    // 1. Setup Timeout Failsafe
-    const timeoutId = setTimeout(() => {
-      setLoading(false);
-    }, 5000);
+    let mounted = true;
 
     const init = async () => {
       try {
-        // 2. Initial Check
-        const { data: { session } } = await supabase.auth.getSession();
-        const currentUser = session?.user ?? null;
+        // Use getUser() instead of getSession() to validate the token with the server
+        // This ensures RLS policies work correctly on page refresh
+        const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
         
-        // Update user state immediately
-        setUser(currentUser);
-
-        if (currentUser) {
+        if (userError) {
+           // If getUser fails (e.g. network), fall back to session
+           console.warn("getUser failed, checking session:", userError);
+           const { data: { session } } = await supabase.auth.getSession();
+           if (session?.user) {
+               setUser(session.user);
+               // Try fetching status anyway
+               const usage = await fetchProStatus(session.user.id);
+               if (usage && mounted) {
+                   setIsPro(!!usage.is_pro);
+                   setSubscriptionData(usage);
+               }
+           } else {
+               if (mounted) setUser(null);
+           }
+        } else if (currentUser) {
+          if (mounted) setUser(currentUser);
           const usage = await fetchProStatus(currentUser.id);
-          if (usage) {
+          if (usage && mounted) {
             setIsPro(!!usage.is_pro);
             setSubscriptionData(usage);
           } else {
-            setIsPro(false);
-            setSubscriptionData(null);
+            if (mounted) {
+                setIsPro(false);
+                setSubscriptionData(null);
+            }
           }
         } else {
-          setIsPro(false);
-          setSubscriptionData(null);
+          if (mounted) {
+              setUser(null);
+              setIsPro(false);
+              setSubscriptionData(null);
+          }
         }
       } catch (error) {
         console.error("Session init error:", error);
       } finally {
-        // 3. Clear Loading
-        setLoading(false);
-        clearTimeout(timeoutId);
+        if (mounted) setLoading(false);
       }
     };
 
     init();
 
-    // 4. Auth Listener (Non-blocking)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth state changed:", event, session?.user?.id);
-      const currentUser = session?.user ?? null;
+      if (!mounted) return;
+      console.log("Auth state changed:", event);
       
-      // Update user state
+      const currentUser = session?.user ?? null;
       setUser(currentUser);
 
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        // We do NOT set loading=true here to avoid flashing/stuck loader.
-        // Instead, we fetch in background and update state when ready.
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
         if (currentUser) {
             const usage = await fetchProStatus(currentUser.id);
-            if (usage) {
-                setIsPro(!!usage.is_pro);
-                setSubscriptionData(usage);
-            } else {
-                setIsPro(false);
-                setSubscriptionData(null);
+            if (mounted) {
+                if (usage) {
+                    setIsPro(!!usage.is_pro);
+                    setSubscriptionData(usage);
+                } else {
+                    setIsPro(false);
+                    setSubscriptionData(null);
+                }
             }
         }
       } else if (event === 'SIGNED_OUT') {
-        setIsPro(false);
-        setSubscriptionData(null);
+        if (mounted) {
+            setIsPro(false);
+            setSubscriptionData(null);
+        }
       }
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
-      clearTimeout(timeoutId);
     };
   }, []);
 
@@ -118,7 +134,7 @@ export default function PricingSection() {
 
       if (response.ok) {
         alert("Subscription successful! Your Pro features are now active.");
-        setIsPro(true); // Optimistic update
+        setIsPro(true); 
         window.location.reload();
       } else {
         const errorData = await response.json();
@@ -213,24 +229,7 @@ export default function PricingSection() {
                   onApprove={handleApprove}
                   onError={(err: any) => {
                     console.error("PayPal Error Object:", err);
-                    
-                    let errorMessage = "Unknown error";
-                    if (err?.message) {
-                      errorMessage = err.message;
-                    } else if (typeof err === "string") {
-                      errorMessage = err;
-                    } else {
-                      const json = JSON.stringify(err);
-                      errorMessage = json === "{}" ? String(err) : json;
-                    }
-
-                    console.error("PayPal Error Message:", errorMessage);
-                    
-                    if (errorMessage.includes("RESOURCE_NOT_FOUND")) {
-                      alert("Configuration Error: The Plan ID is invalid. Please check your PayPal Dashboard.");
-                    } else {
-                      alert("PayPal Error: " + errorMessage);
-                    }
+                    alert("PayPal Error: " + (err.message || "Unknown error"));
                   }}
                 />
               </PayPalScriptProvider>
