@@ -25,22 +25,28 @@ function LoginContent() {
       setErrorMessage(errorDesc || "Authentication failed. Please try again.");
     }
 
-    // Failsafe timeout in case Supabase hangs
+    // Failsafe timeout
     const timer = setTimeout(() => {
-      console.warn("Session check timed out, forcing loading false");
-      setLoading(false);
-    }, 5000);
+      if (loading) {
+        console.warn("Session check timed out, forcing loading false");
+        setLoading(false);
+      }
+    }, 3000); // Reduced to 3s for faster feedback
 
     // Initial Check
     const checkSession = async () => {
       try {
         console.log("Checking session...");
-        const { data: { session }, error } = await supabase.auth.getSession();
+        // Use getUser() instead of getSession() for security/reliability in newer Supabase versions
+        // but getSession is fine for client-side check.
+        // Adding a small delay to allow client to hydrate? No.
+        
+        const { data, error } = await supabase.auth.getSession();
         if (error) {
             console.error("Session check error:", error);
         }
-        console.log("Session result:", !!session);
-        setUser(session?.user ?? null);
+        console.log("Session result:", !!data.session);
+        setUser(data.session?.user ?? null);
       } catch (err) {
         console.error("Unexpected session check error:", err);
       } finally {
@@ -52,8 +58,13 @@ function LoginContent() {
     // Listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log("Auth state change:", event, !!session);
-      setUser(session?.user ?? null);
-      setLoading(false);
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+        setUser(session?.user ?? null);
+        setLoading(false);
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setLoading(false);
+      }
     });
 
     return () => {
@@ -67,13 +78,17 @@ function LoginContent() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: window.location.origin,
+        redirectTo: window.location.origin, // Ensure this matches your Supabase Auth Redirect URL
         queryParams: {
-          prompt: "select_account",
+          access_type: "offline",
+          prompt: "consent",
         },
       },
     });
-    if (error) console.error("Login error:", error.message);
+    if (error) {
+      console.error("Login error:", error.message);
+      setErrorMessage("Could not start Google login: " + error.message);
+    }
   };
 
   const signOut = async () => {
@@ -83,7 +98,6 @@ function LoginContent() {
     } catch (err) {
         console.error("Sign out error:", err);
     }
-    // Force reload to clear any state
     window.location.href = "/login";
   };
 
