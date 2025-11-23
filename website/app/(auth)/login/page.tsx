@@ -83,8 +83,9 @@ function LoginContent() {
 
   const signOut = async () => {
     setIsSigningOut(true);
+    const timeout = new Promise(resolve => setTimeout(resolve, 1000));
     try {
-        await supabase.auth.signOut();
+        await Promise.race([supabase.auth.signOut(), timeout]);
     } catch (err) {
         console.error("Sign out error:", err);
     }

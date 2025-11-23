@@ -19,8 +19,6 @@ export default function Header() {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        // Fetch Pro status
-        // Use select('*') to prevent errors if columns are missing
         const { data } = await supabase
           .from('user_usage')
           .select('*')
@@ -51,8 +49,10 @@ export default function Header() {
   }, []);
 
   const handleSignOut = async () => {
+    // Use Promise.race to prevent hanging if Supabase client is stuck (common in Chrome with bad state)
+    const timeout = new Promise(resolve => setTimeout(resolve, 1000)); // 1s max wait
     try {
-      await supabase.auth.signOut();
+      await Promise.race([supabase.auth.signOut(), timeout]);
     } catch (err) {
       console.error("Logout error:", err);
     }
