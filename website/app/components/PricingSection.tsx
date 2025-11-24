@@ -38,6 +38,7 @@ export default function PricingSection() {
 
   useEffect(() => {
     let mounted = true;
+    let hasReceivedEvent = false;
     console.log('[PricingSection] useEffect started, mounted:', mounted);
 
     const handleAuthChange = async (event: string, currentUser: User | null) => {
@@ -81,6 +82,7 @@ export default function PricingSection() {
     console.log('[PricingSection] Setting up onAuthStateChange listener');
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('[PricingSection] onAuthStateChange fired:', { event, hasSession: !!session, userId: session?.user?.id });
+      hasReceivedEvent = true;
       
       if (!mounted) {
         console.log('[PricingSection] onAuthStateChange - not mounted, returning');
@@ -92,9 +94,23 @@ export default function PricingSection() {
     });
     console.log('[PricingSection] onAuthStateChange listener set up');
 
+    // Fallback: manually check session if no event fires within 100ms
+    const fallbackTimeout = setTimeout(async () => {
+      if (!hasReceivedEvent && mounted) {
+        console.log('[PricingSection] No auth event received, manually checking session...');
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('[PricingSection] Manual session check result:', { hasSession: !!session, userId: session?.user?.id });
+        
+        if (mounted && !hasReceivedEvent) {
+          await handleAuthChange('MANUAL_CHECK', session?.user ?? null);
+        }
+      }
+    }, 100);
+
     return () => {
       console.log('[PricingSection] Cleanup - unmounting');
       mounted = false;
+      clearTimeout(fallbackTimeout);
       subscription.unsubscribe();
     };
   }, []);
