@@ -11,21 +11,36 @@ import Reveal from "./Reveal";
 const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID!;
 const PAYPAL_PLAN_ID = process.env.NEXT_PUBLIC_PAYPAL_PLAN_ID!;
 
-const fetchProStatus = async (userId: string) => {
+const fetchProStatus = async (userId: string, signal?: AbortSignal) => {
+  console.log('[fetchProStatus] Starting query for user:', userId);
   try {
-    const { data: usage, error } = await supabase
+    // Add timeout to prevent hanging
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Query timeout after 5s')), 5000);
+    });
+
+    const queryPromise = supabase
       .from('user_usage')
       .select('*')
       .eq('user_id', userId)
       .maybeSingle();
+
+    const { data: usage, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
+    
+    console.log('[fetchProStatus] Query completed:', { usage, error });
+    
+    if (signal?.aborted) {
+      console.log('[fetchProStatus] Aborted, returning null');
+      return null;
+    }
     
     if (error) {
-      console.error("Error fetching usage:", error);
+      console.error("[fetchProStatus] Error fetching usage:", error);
       return null;
     }
     return usage;
   } catch (err) {
-    console.error("Exception fetching usage:", err);
+    console.error("[fetchProStatus] Exception:", err);
     return null;
   }
 };
@@ -39,22 +54,31 @@ export default function PricingSection() {
   useEffect(() => {
     let mounted = true;
     let hasReceivedEvent = false;
+    let isProcessing = false;
+    const abortController = new AbortController();
     console.log('[PricingSection] useEffect started, mounted:', mounted);
 
     const handleAuthChange = async (event: string, currentUser: User | null) => {
-      console.log('[PricingSection] handleAuthChange called:', { event, userId: currentUser?.id, mounted });
+      console.log('[PricingSection] handleAuthChange called:', { event, userId: currentUser?.id, mounted, isProcessing });
       
       if (!mounted) {
         console.log('[PricingSection] Not mounted, returning early');
         return;
       }
+
+      // Prevent duplicate processing
+      if (isProcessing) {
+        console.log('[PricingSection] Already processing, skipping');
+        return;
+      }
+      isProcessing = true;
       
       setUser(currentUser);
 
       if (currentUser) {
         console.log('[PricingSection] Fetching pro status for user:', currentUser.id);
-        const usage = await fetchProStatus(currentUser.id);
-        console.log('[PricingSection] Pro status fetched:', usage);
+        const usage = await fetchProStatus(currentUser.id, abortController.signal);
+        console.log('[PricingSection] Pro status fetched:', usage, 'mounted:', mounted);
         
         if (mounted) {
           if (usage) {
@@ -77,6 +101,7 @@ export default function PricingSection() {
         console.log('[PricingSection] Setting loading to false');
         setLoading(false);
       }
+      isProcessing = false;
     };
 
     console.log('[PricingSection] Setting up onAuthStateChange listener');
@@ -96,7 +121,7 @@ export default function PricingSection() {
 
     // Fallback: manually check session if no event fires within 100ms
     const fallbackTimeout = setTimeout(async () => {
-      if (!hasReceivedEvent && mounted) {
+      if (!hasReceivedEvent && mounted && !isProcessing) {
         console.log('[PricingSection] No auth event received, manually checking session...');
         const { data: { session } } = await supabase.auth.getSession();
         console.log('[PricingSection] Manual session check result:', { hasSession: !!session, userId: session?.user?.id });
@@ -110,6 +135,8 @@ export default function PricingSection() {
     return () => {
       console.log('[PricingSection] Cleanup - unmounting');
       mounted = false;
+      isProcessing = false;
+      abortController.abort();
       clearTimeout(fallbackTimeout);
       subscription.unsubscribe();
     };
