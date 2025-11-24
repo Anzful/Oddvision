@@ -4,26 +4,25 @@ import React from "react";
 
 export default function Footer() {
   return (
-    <footer className="ov-footer">
-      <div className="ov-container ov-footer-inner">
-        <div className="ov-footer-left">
-          <Image
-            src="/logo.png"
-            alt="Oddvision Logo"
-            width={34}
-            height={34}
-            className="ov-footer-logo"
-          />
-          <span>Oddvision</span>
-        </div>
-        <div className="ov-footer-right">
-          <Link href="/privacy" className="ov-footer-link">
-            Privacy Policy
-          </Link>
-          <span className="ov-footer-dim">Ghost‑mode AI overlay for the web</span>
+    <footer className="footer">
+      <div className="container">
+        <div className="footer-inner">
+          <div className="footer-brand">
+            <Image
+              src="/logo.png"
+              alt="Oddvision"
+              width={32}
+              height={32}
+              className="footer-logo"
+            />
+            <span className="footer-name">Oddvision</span>
+          </div>
+          <div className="footer-links">
+            <Link href="/privacy" className="footer-link">Privacy</Link>
+            <span className="footer-tagline">Stealth AI for the modern web</span>
+          </div>
         </div>
       </div>
     </footer>
   );
 }
-

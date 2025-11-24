@@ -4,7 +4,18 @@ import { useEffect, useState, Suspense } from "react";
 import { supabase } from "../../../lib/supabaseClient";
 import { User } from "@supabase/supabase-js";
 import { useSearchParams, useRouter } from "next/navigation";
-import { IconBrandGoogle, IconCheck, IconArrowRight, IconLogout, IconRefresh } from "@tabler/icons-react";
+import Image from "next/image";
+import Link from "next/link";
+import { 
+  IconBrandGoogle, 
+  IconCheck, 
+  IconArrowRight, 
+  IconLogout, 
+  IconRefresh,
+  IconDevices,
+  IconInfinity,
+  IconShield
+} from "@tabler/icons-react";
 
 function LoginContent() {
   const [user, setUser] = useState<User | null>(null);
@@ -15,29 +26,22 @@ function LoginContent() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check for errors in URL
     const error = searchParams.get("error");
     const errorDesc = searchParams.get("error_description");
     if (error) {
-      console.error("Auth Error:", error, errorDesc);
       setErrorMessage(errorDesc || "Authentication failed. Please try again.");
     }
 
-    // Failsafe timeout
     const timer = setTimeout(() => {
       if (loading) {
-        console.warn("Session check timed out, forcing loading false");
         setLoading(false);
       }
     }, 3000);
 
-    // Initial Check
     const checkSession = async () => {
       try {
         const { data, error } = await supabase.auth.getSession();
-        if (error) {
-            console.error("Session check error:", error);
-        }
+        if (error) console.error("Session check error:", error);
         setUser(data.session?.user ?? null);
       } catch (err) {
         console.error("Unexpected session check error:", err);
@@ -47,7 +51,6 @@ function LoginContent() {
     };
     checkSession();
 
-    // Listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
         setUser(session?.user ?? null);
@@ -62,21 +65,17 @@ function LoginContent() {
         clearTimeout(timer);
         subscription.unsubscribe();
     };
-  }, [searchParams]);
+  }, [searchParams, loading]);
 
   const signInWithGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: window.location.origin,
-        queryParams: {
-          access_type: "offline",
-          prompt: "consent",
-        },
+        queryParams: { access_type: "offline", prompt: "consent" },
       },
     });
     if (error) {
-      console.error("Login error:", error.message);
       setErrorMessage("Could not start Google login: " + error.message);
     }
   };
@@ -96,129 +95,134 @@ function LoginContent() {
     if (confirm("This will clear your local session data and refresh the page. Continue?")) {
         localStorage.clear();
         sessionStorage.clear();
-        // Clear cookies
         document.cookie.split(";").forEach((c) => {
-            document.cookie = c
-            .replace(/^ +/, "")
-            .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
         });
         window.location.reload();
     }
   };
 
+  const features = [
+    {
+      icon: IconDevices,
+      title: "Sync across devices",
+      description: "Access your Pro subscription on any computer"
+    },
+    {
+      icon: IconInfinity,
+      title: "Unlimited AI analysis",
+      description: "Go Pro to remove all usage limits"
+    },
+    {
+      icon: IconShield,
+      title: "Secure & private",
+      description: "Your data is encrypted and never sold"
+    }
+  ];
+
   return (
-    <div className="min-h-[80vh] flex items-center justify-center p-4">
-      <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-        
-        {/* Left Side - Context */}
-        <div className="hidden md:block">
-          <h1 className="text-4xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
-            Unlock the full power of Oddvision
+    <div className="auth-page">
+      {/* Left side - Visual */}
+      <div className="auth-visual">
+        <div className="auth-visual-content">
+          <h1 className="auth-visual-title">
+            Unlock the full<br />
+            power of<br />
+            <span style={{ color: 'var(--accent)' }}>Oddvision</span>
           </h1>
-          <div className="space-y-6">
-            <div className="flex gap-4">
-              <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center border border-purple-500/20">
-                <IconCheck className="text-purple-400" />
+          
+          <div>
+            {features.map((feature, index) => (
+              <div key={index} className="auth-feature">
+                <div className="auth-feature-icon">
+                  <feature.icon size={24} />
+                </div>
+                <div>
+                  <h3 className="auth-feature-title">{feature.title}</h3>
+                  <p className="auth-feature-text">{feature.description}</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold text-lg">Sync Across Devices</h3>
-                <p className="text-gray-400">Access your subscription on any computer.</p>
-              </div>
-            </div>
-            <div className="flex gap-4">
-              <div className="w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
-                <IconCheck className="text-cyan-400" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-lg">Unlimited AI Analysis</h3>
-                <p className="text-gray-400">Go Pro to remove all limits.</p>
-              </div>
-            </div>
-            <div className="flex gap-4">
-              <div className="w-10 h-10 rounded-lg bg-pink-500/10 flex items-center justify-center border border-pink-500/20">
-                <IconCheck className="text-pink-400" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-lg">Secure & Private</h3>
-                <p className="text-gray-400">Your data is encrypted and never sold.</p>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
+      </div>
 
-        {/* Right Side - Login Box */}
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-8 backdrop-blur-xl shadow-2xl">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold mb-2">Welcome Back</h2>
-            <p className="text-gray-400">Sign in to continue</p>
+      {/* Right side - Form */}
+      <div className="auth-form-side">
+        <div className="auth-card">
+          <div className="auth-header">
+            <Link href="/" className="auth-logo">
+              <Image
+                src="/logo.png"
+                alt="Oddvision"
+                width={48}
+                height={48}
+                className="auth-logo-img"
+              />
+              <span className="auth-logo-text">Oddvision</span>
+            </Link>
+            <h2 className="auth-title">Welcome back</h2>
+            <p className="auth-subtitle">Sign in to access your account</p>
           </div>
 
           {errorMessage && (
-            <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm text-center">
-              {errorMessage}
-            </div>
+            <div className="auth-error">{errorMessage}</div>
           )}
 
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-8 gap-3">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-              <span className="text-gray-400 text-sm">Connecting...</span>
+            <div className="auth-loading">
+              <div className="auth-spinner" />
+              <span className="auth-loading-text">Connecting...</span>
             </div>
           ) : user ? (
-            <div className="text-center py-4">
-              <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 mb-6">
-                <p className="text-green-400 font-medium mb-1">Logged in as</p>
-                <p className="text-white break-all">{user.email}</p>
+            <div>
+              <div className="auth-success">
+                <p className="auth-success-label">Logged in as</p>
+                <p className="auth-success-email">{user.email}</p>
               </div>
               
-              <div className="flex flex-col gap-3">
+              <div className="auth-buttons">
                 <button 
                   onClick={() => router.push('/')}
-                  className="w-full flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-900 font-bold py-3 px-6 rounded-xl transition-all transform hover:scale-[1.02]"
+                  className="auth-btn auth-btn-primary"
                 >
-                  Continue to App <IconArrowRight size={18} />
+                  Continue to App
+                  <IconArrowRight size={18} />
                 </button>
                 
                 <button 
                   onClick={signOut}
                   disabled={isSigningOut}
-                  className="w-full flex items-center justify-center gap-2 bg-transparent hover:bg-white/5 text-gray-400 hover:text-white font-medium py-3 px-6 rounded-xl transition-colors border border-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="auth-btn auth-btn-secondary"
                 >
-                  {isSigningOut ? (
-                    <span className="animate-pulse">Signing out...</span>
-                  ) : (
+                  {isSigningOut ? "Signing out..." : (
                     <>
-                      <IconLogout size={18} /> Sign Out
+                      <IconLogout size={18} />
+                      Sign Out
                     </>
                   )}
                 </button>
               </div>
             </div>
           ) : (
-            <div className="flex flex-col gap-4">
-                <button
-                  onClick={signInWithGoogle}
-                  className="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-50 text-gray-900 font-bold py-3 px-6 rounded-xl transition-all transform hover:scale-[1.02] active:scale-[0.98]"
-                >
-                  <IconBrandGoogle size={20} />
-                  Continue with Google
-                </button>
-                
-                <button
-                    onClick={clearBrowserData}
-                    className="text-xs text-gray-500 hover:text-gray-300 flex items-center justify-center gap-1 mt-2"
-                    title="Fix stuck login issues"
-                >
-                    <IconRefresh size={12} /> Reset Login Data
-                </button>
+            <div className="auth-buttons">
+              <button onClick={signInWithGoogle} className="auth-btn auth-btn-google">
+                <IconBrandGoogle size={20} />
+                Continue with Google
+              </button>
+              
+              <button onClick={clearBrowserData} className="auth-reset">
+                <IconRefresh size={14} />
+                Reset login data
+              </button>
             </div>
           )}
           
-          <p className="text-center mt-6 text-xs text-gray-500">
-            By continuing, you agree to our <a href="/privacy" className="underline hover:text-gray-300">Privacy Policy</a>
+          <p className="auth-terms">
+            By continuing, you agree to our{" "}
+            <Link href="/privacy">Privacy Policy</Link>
           </p>
         </div>
-
       </div>
     </div>
   );
@@ -226,7 +230,18 @@ function LoginContent() {
 
 export default function Login() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+    <Suspense fallback={
+      <div style={{ 
+        minHeight: '100vh', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        background: 'var(--black)',
+        color: 'var(--white-dim)'
+      }}>
+        <div className="auth-spinner" />
+      </div>
+    }>
       <LoginContent />
     </Suspense>
   );

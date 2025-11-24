@@ -1,14 +1,18 @@
-import Link from "next/link";
 import React from "react";
 import {
   IconBrandChrome,
-  IconGhost,
-  IconKeyboard,
+  IconEyeOff,
+  IconCommand,
   IconBolt,
-  IconKey,
-  IconScan,
-  IconSparkles,
-  IconEye,
+  IconPlugConnected,
+  IconCapture,
+  IconBrain,
+  IconLayoutBottombar,
+  IconArrowRight,
+  IconTerminal2,
+  IconRocket,
+  IconCheck,
+  IconShield,
 } from "@tabler/icons-react";
 import Reveal from "../components/Reveal";
 import PricingSection from "../components/PricingSection";
@@ -16,152 +20,316 @@ import PricingSection from "../components/PricingSection";
 export default function Home() {
   return (
     <>
+      {/* Background Elements */}
+      <div className="bg-grid" />
+      <div className="bg-gradient" />
+
       {/* Hero */}
-      <section className="ov-hero">
-        <div className="ov-hero-bg" aria-hidden="true"></div>
-        <div className="ov-container">
-          <h1 className="ov-hero-title">Stealth AI overlay for any webpage</h1>
-          <p className="ov-hero-subtitle">
-            No copy-pasting. No switching tabs. Just press <kbd>Alt</kbd>+
-            <kbd>1</kbd> to capture and <kbd>Alt</kbd>+<kbd>2</kbd> to ask.
-            It&apos;s that simple.
-          </p>
-          <div className="ov-cta">
-            <a
-              id="installPrimary"
-              className="ov-btn ov-btn--primary"
-              href="https://chromewebstore.google.com/detail/agckpadpigmebffnhleebpkllfpbggge?utm_source=item-share-cb"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <IconBrandChrome style={{ marginRight: 8 }} />
-              Add to Chrome
-            </a>
-          </div>
-          <div className="ov-kbd-grid">
-            <div className="ov-kbd-item">
-              <kbd>Alt</kbd>
-              <span>+</span>
-              <kbd>1</kbd>
-              <span className="ov-kbd-label">Capture</span>
+      <section className="hero">
+        <div className="container">
+          <div className="hero-content">
+            <div className="hero-text">
+              <Reveal>
+                <div className="hero-badge">
+                  <span>Chrome Extension — Available Now</span>
+                </div>
+              </Reveal>
+              
+              <Reveal delay={1}>
+                <h1 className="hero-title">
+                  Ghost mode<br />
+                  <span className="hero-title-accent">AI assistant</span>
+                </h1>
+              </Reveal>
+              
+              <Reveal delay={2}>
+                <p className="hero-subtitle">
+                  An invisible AI overlay that lives on any webpage. Capture text with 
+                  one keystroke, get instant AI analysis without ever leaving your tab.
+                </p>
+              </Reveal>
+              
+              <Reveal delay={3}>
+                <div className="hero-cta">
+                  <a
+                    href="https://chromewebstore.google.com/detail/agckpadpigmebffnhleebpkllfpbggge?utm_source=item-share-cb"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-primary"
+                  >
+                    <IconBrandChrome size={20} />
+                    Install for Chrome
+                  </a>
+                  <a href="#how" className="btn btn-secondary">
+                    See how it works
+                    <IconArrowRight size={18} />
+                  </a>
+                </div>
+              </Reveal>
+
+              <Reveal delay={4}>
+                <div className="keyboard-hints">
+                  <div className="kbd-item">
+                    <span className="kbd">Alt</span>
+                    <span style={{ color: 'var(--white-muted)' }}>+</span>
+                    <span className="kbd">1</span>
+                    <span className="kbd-label">Capture</span>
+                  </div>
+                  <div className="kbd-item">
+                    <span className="kbd">Alt</span>
+                    <span style={{ color: 'var(--white-muted)' }}>+</span>
+                    <span className="kbd">2</span>
+                    <span className="kbd-label">Analyze</span>
+                  </div>
+                  <div className="kbd-item">
+                    <span className="kbd">Alt</span>
+                    <span style={{ color: 'var(--white-muted)' }}>+</span>
+                    <span className="kbd">3</span>
+                    <span className="kbd-label">View</span>
+                  </div>
+                </div>
+              </Reveal>
             </div>
-            <div className="ov-kbd-item">
-              <kbd>Alt</kbd>
-              <span>+</span>
-              <kbd>2</kbd>
-              <span className="ov-kbd-label">Analyze</span>
-            </div>
-            <div className="ov-kbd-item">
-              <kbd>Alt</kbd>
-              <span>+</span>
-              <kbd>3</kbd>
-              <span className="ov-kbd-label">Overlay</span>
-            </div>
-            <div className="ov-kbd-item">
-              <kbd>Alt</kbd>
-              <span>+</span>
-              <kbd>4</kbd>
-              <span className="ov-kbd-label">Color</span>
+
+            {/* Hero Visual - Browser Mockup */}
+            <div className="hero-visual">
+              <Reveal delay={2}>
+                <div className="hero-browser">
+                  <div className="browser-bar">
+                    <div className="browser-dot" />
+                    <div className="browser-dot" />
+                    <div className="browser-dot" />
+                    <div className="browser-url">oddvision.xyz</div>
+                  </div>
+                  <div className="browser-content">
+                    {/* Simulated webpage content - mirrors real site */}
+                    <div className="fake-page">
+                      <div className="fake-header">
+                        <div className="fake-logo">Oddvision</div>
+                        <div className="fake-nav">
+                          <span>Features</span>
+                          <span>Pricing</span>
+                          <span>Install</span>
+                        </div>
+                      </div>
+                      <div className="fake-article">
+                        <h3 className="fake-article-title">Stealth AI overlay for any webpage</h3>
+                        <p className="fake-article-meta">Chrome Extension · Free to use</p>
+                        <p className="fake-article-text">
+                          No copy-pasting. No switching tabs. Just press Alt+1 to capture 
+                          and Alt+2 to ask. It&apos;s that simple.
+                        </p>
+                        <p className="fake-article-text">
+                          Small, transparent widget in the corner. It looks like nothing, 
+                          but does everything. Keyboard-first with quick shortcuts.
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* Extension Popup - positioned like real Chrome extension */}
+                    <div className="extension-popup">
+                      <img 
+                        src="/1.png" 
+                        alt="Oddvision Extension" 
+                        className="extension-popup-img"
+                      />
+                    </div>
+
+                    {/* Floating Widget */}
+                    <div className="overlay-widget">
+                      <div className="overlay-widget-header">
+                        <div className="overlay-widget-dot" />
+                        <span className="overlay-widget-title">Oddvision</span>
+                      </div>
+                      <p className="overlay-widget-text">
+                        ✓ Page captured. AI analysis ready.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </Reveal>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features */}
-      <section id="features" className="ov-section">
-        <div className="ov-container">
-          <h2 className="ov-section-title">Why Oddvision</h2>
-          <div className="ov-grid">
-            <Reveal className="ov-card">
-              <div className="ov-card-icon">
-                <IconGhost />
-              </div>
-              <h3>Stays out of your way</h3>
-              <p>
-                Small, transparent widget in the corner. It looks like nothing,
-                but does everything.
+      {/* Features - Bento Grid */}
+      <section id="features" className="section">
+        <div className="container">
+          <Reveal>
+            <div className="section-header section-header-center">
+              <span className="section-label">Features</span>
+              <h2 className="section-title">Built for speed and stealth</h2>
+              <p className="section-subtitle">
+                Everything you need, nothing you don&apos;t. Zero configuration required.
               </p>
+            </div>
+          </Reveal>
+
+          <div className="features-grid">
+            <Reveal className="feature-card feature-card-large" delay={1}>
+              <div className="feature-card-glow" />
+              <div className="feature-icon-wrapper">
+                <div className="feature-icon">
+                  <IconEyeOff size={32} />
+                </div>
+                <div className="feature-icon-ring" />
+              </div>
+              <h3 className="feature-title">Invisible by design</h3>
+              <p className="feature-text">
+                A tiny, transparent widget in the corner that appears only when you need it. 
+                Completely undetectable, blends into any webpage seamlessly.
+              </p>
+              <div className="feature-tag">Ghost Mode</div>
             </Reveal>
-            <Reveal className="ov-card">
-              <div className="ov-card-icon">
-                <IconKeyboard />
+
+            <Reveal className="feature-card" delay={2}>
+              <div className="feature-card-glow" />
+              <div className="feature-icon-wrapper">
+                <div className="feature-icon feature-icon-cyan">
+                  <IconCommand size={28} />
+                </div>
               </div>
-              <h3>Keyboard first</h3>
-              <p>
-                Capture, ask, and view with quick shortcuts. No mouse clicks
-                required.
+              <h3 className="feature-title">Keyboard-first</h3>
+              <p className="feature-text">
+                Three shortcuts is all you need. Capture, analyze, and view without 
+                touching your mouse.
               </p>
+              <div className="feature-keys">
+                <span className="feature-key">Alt+1</span>
+                <span className="feature-key">Alt+2</span>
+                <span className="feature-key">Alt+3</span>
+              </div>
             </Reveal>
-            <Reveal className="ov-card">
-              <div className="ov-card-icon">
-                <IconBolt />
+
+            <Reveal className="feature-card" delay={3}>
+              <div className="feature-card-glow" />
+              <div className="feature-icon-wrapper">
+                <div className="feature-icon feature-icon-green">
+                  <IconBolt size={28} />
+                </div>
               </div>
-              <h3>Always available</h3>
-              <p>
-                Smart technology (failover) ensures you get an answer, even if
-                one AI provider is busy.
+              <h3 className="feature-title">Instant responses</h3>
+              <p className="feature-text">
+                Smart failover between multiple AI providers ensures you always 
+                get an answer, even during peak times.
               </p>
+              <div className="feature-speed">
+                <div className="feature-speed-bar" />
+                <span>~200ms response</span>
+              </div>
             </Reveal>
-            <Reveal className="ov-card">
-              <div className="ov-card-icon">
-                <IconKey />
+
+            <Reveal className="feature-card feature-card-wide" delay={4}>
+              <div className="feature-card-glow" />
+              <div className="feature-icon-wrapper">
+                <div className="feature-icon feature-icon-orange">
+                  <IconPlugConnected size={28} />
+                </div>
               </div>
-              <h3>No setup required</h3>
-              <p>
-                Everything is built-in. Just install and start using it
-                immediately.
-              </p>
+              <div className="feature-card-content">
+                <h3 className="feature-title">Zero setup required</h3>
+                <p className="feature-text">
+                  No API keys needed. No configuration. Just install and start using 
+                  immediately. Everything is built-in and ready to go.
+                </p>
+              </div>
+              <div className="feature-checklist">
+                <div className="feature-check"><IconCheck size={16} /> No API keys</div>
+                <div className="feature-check"><IconCheck size={16} /> No config</div>
+                <div className="feature-check"><IconCheck size={16} /> Works instantly</div>
+              </div>
             </Reveal>
           </div>
         </div>
       </section>
 
       {/* How it works */}
-      <section id="how" className="ov-section">
-        <div className="ov-container">
-          <h2 className="ov-section-title">How it works</h2>
-          <div className="ov-steps-container">
-            <Reveal className="ov-step">
-              <div className="ov-step-header">
-                <span className="ov-step-num">01</span>
-                <div className="ov-step-icon">
-                  <IconScan />
-                </div>
-              </div>
-              <h3>Capture</h3>
-              <p>
-                Press <kbd>Alt+1</kbd>. Oddvision silently reads the visible
-                text on your screen.
+      <section id="how" className="section section-dark">
+        <div className="container">
+          <Reveal>
+            <div className="section-header section-header-center">
+              <span className="section-label">How it works</span>
+              <h2 className="section-title">Three keystrokes to AI power</h2>
+              <p className="section-subtitle">
+                Simple, fast, and stays out of your way.
               </p>
-            </Reveal>
-            {/* connector logic is handled by CSS ::before on container */}
-            <Reveal className="ov-step">
-              <div className="ov-step-header">
-                <span className="ov-step-num">02</span>
-                <div className="ov-step-icon">
-                  <IconSparkles />
+            </div>
+          </Reveal>
+
+          <div className="steps-container">
+            {/* Connection line */}
+            <div className="steps-line">
+              <div className="steps-line-progress" />
+            </div>
+
+            <div className="steps-grid">
+              <Reveal className="step-card" delay={1}>
+                <div className="step-header">
+                  <div className="step-number-wrapper">
+                    <span className="step-number">01</span>
+                    <div className="step-number-glow" />
+                  </div>
+                  <div className="step-icon">
+                    <IconCapture size={24} />
+                  </div>
                 </div>
-              </div>
-              <h3>Analyze</h3>
-              <p>
-                Press <kbd>Alt+2</kbd>. Your request flies to Groq (or
-                OpenRouter) for an instant AI response.
-              </p>
-            </Reveal>
-            {/* connector */}
-            <Reveal className="ov-step">
-              <div className="ov-step-header">
-                <span className="ov-step-num">03</span>
-                <div className="ov-step-icon">
-                  <IconEye />
+                <h3 className="step-title">Capture</h3>
+                <p className="step-text">
+                  Press the shortcut to silently capture all visible text on the current page. 
+                  No popups, no interruptions.
+                </p>
+                <div className="step-keyboard">
+                  <div className="step-key">Alt</div>
+                  <span className="step-key-plus">+</span>
+                  <div className="step-key step-key-accent">1</div>
                 </div>
-              </div>
-              <h3>View</h3>
-              <p>
-                Press <kbd>Alt+3</kbd>. The stealth overlay fades in with your
-                answer. No tab switching.
-              </p>
-            </Reveal>
+              </Reveal>
+
+              <Reveal className="step-card" delay={2}>
+                <div className="step-header">
+                  <div className="step-number-wrapper">
+                    <span className="step-number">02</span>
+                    <div className="step-number-glow" />
+                  </div>
+                  <div className="step-icon step-icon-cyan">
+                    <IconBrain size={24} />
+                  </div>
+                </div>
+                <h3 className="step-title">Analyze</h3>
+                <p className="step-text">
+                  Send to AI instantly. Uses Groq or OpenRouter for 
+                  lightning-fast inference with smart failover.
+                </p>
+                <div className="step-keyboard">
+                  <div className="step-key">Alt</div>
+                  <span className="step-key-plus">+</span>
+                  <div className="step-key step-key-cyan">2</div>
+                </div>
+              </Reveal>
+
+              <Reveal className="step-card" delay={3}>
+                <div className="step-header">
+                  <div className="step-number-wrapper">
+                    <span className="step-number">03</span>
+                    <div className="step-number-glow" />
+                  </div>
+                  <div className="step-icon step-icon-green">
+                    <IconLayoutBottombar size={24} />
+                  </div>
+                </div>
+                <h3 className="step-title">View</h3>
+                <p className="step-text">
+                  Reveal the stealth overlay with your AI response. 
+                  No tab switching required. It just appears.
+                </p>
+                <div className="step-keyboard">
+                  <div className="step-key">Alt</div>
+                  <span className="step-key-plus">+</span>
+                  <div className="step-key step-key-green">3</div>
+                </div>
+              </Reveal>
+            </div>
           </div>
         </div>
       </section>
@@ -170,81 +338,156 @@ export default function Home() {
       <PricingSection />
 
       {/* Providers */}
-      <section id="providers" className="ov-section">
-        <div className="ov-container">
-          <h2 className="ov-section-title">Providers & limits</h2>
-          <div className="ov-providers">
-            <Reveal className="ov-provider">
-              <div className="ov-provider-head">
-                <span className="ov-badge ov-badge--free">Free</span>
-                <h3>Groq — Llama 3.3 70B</h3>
+      <section id="providers" className="section section-dark">
+        <div className="container">
+          <Reveal>
+            <div className="section-header">
+              <span className="section-label">Infrastructure</span>
+              <h2 className="section-title">Powered by the fastest AI</h2>
+              <p className="section-subtitle">
+                Multiple providers for maximum reliability and speed.
+              </p>
+            </div>
+          </Reveal>
+
+          <div className="providers-grid">
+            <Reveal className="provider-card" delay={1}>
+              <div className="provider-header">
+                <span className="provider-badge">Free</span>
+                <h3 className="provider-name">Groq — Llama 3.3 70B</h3>
               </div>
-              <ul className="ov-list">
-                <li>~30 requests / minute</li>
-                <li>~14,400 requests / day</li>
-                <li>Ultra‑low latency</li>
+              <ul className="provider-list">
+                <li>~30 requests per minute</li>
+                <li>~14,400 requests per day</li>
+                <li>Ultra-low latency inference</li>
               </ul>
             </Reveal>
-            <Reveal className="ov-provider">
-              <div className="ov-provider-head">
-                <span className="ov-badge ov-badge--free">Free</span>
-                <h3>OpenRouter — MiniMax M2</h3>
+
+            <Reveal className="provider-card" delay={2}>
+              <div className="provider-header">
+                <span className="provider-badge">Free</span>
+                <h3 className="provider-name">OpenRouter — MiniMax M2</h3>
               </div>
-              <ul className="ov-list">
-                <li>~20 requests / minute (free)</li>
-                <li>~200 requests / day (free models)</li>
-                <li>Great backup capacity</li>
+              <ul className="provider-list">
+                <li>~20 requests per minute</li>
+                <li>~200 requests per day</li>
+                <li>Excellent backup capacity</li>
               </ul>
             </Reveal>
           </div>
-          <p className="ov-note">
-            Numbers may change over time. Oddvision automatically balances to
-            stay responsive.
-          </p>
-        </div>
-      </section>
 
-      {/* Rules */}
-      <section id="rules" className="ov-section">
-        <div className="ov-container">
-          <h2 className="ov-section-title">Use responsibly</h2>
-          <Reveal className="ov-rules">
-            <p>
-              Oddvision is for research, learning, and productivity. Don’t abuse
-              rate limits, spam, or try to bypass site rules. Respect content
-              owners and local law.
+          <Reveal>
+            <p style={{ marginTop: '32px', fontSize: '14px', color: 'var(--white-muted)' }}>
+              <IconTerminal2 size={16} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '8px' }} />
+              Limits may vary. Oddvision auto-balances between providers for optimal performance.
             </p>
-            <ul className="ov-list">
-              <li>No automated scraping beyond what you actively view.</li>
-              <li>No harmful, illegal, or abusive usage.</li>
-              <li>API keys are built-in. No setup required.</li>
-            </ul>
           </Reveal>
         </div>
       </section>
 
-      {/* Install */}
-      <section id="install" className="ov-section">
-        <div className="ov-container">
-          <h2 className="ov-section-title">Install Oddvision</h2>
-          <div className="ov-install-grid">
-            <Reveal className="ov-install-card">
-              <h3>Chrome Web Store</h3>
-              <p>
-                One‑click install from the store. Updates land automatically.
+      {/* Rules */}
+      <section id="rules" className="section">
+        <div className="container">
+          <div className="rules-wrapper">
+            <Reveal>
+              <div className="rules-header">
+                <div className="rules-icon">
+                  <IconShield size={32} />
+                </div>
+                <div>
+                  <span className="section-label">Guidelines</span>
+                  <h2 className="section-title">Use responsibly</h2>
+                </div>
+              </div>
+            </Reveal>
+
+            <Reveal delay={1}>
+              <p className="rules-intro">
+                Oddvision is designed for research, learning, and productivity. 
+                Please respect the following guidelines to keep the service running for everyone.
               </p>
-              <a
-                id="storeLink"
-                className="ov-btn ov-btn--primary"
-                href="https://chromewebstore.google.com/detail/agckpadpigmebffnhleebpkllfpbggge?utm_source=item-share-cb"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Open in Chrome Web Store
-              </a>
-              <p className="ov-mini-note">
-                Available now on the official Chrome Web Store.
-              </p>
+            </Reveal>
+
+            <div className="rules-grid">
+              <Reveal className="rule-item" delay={1}>
+                <div className="rule-number">01</div>
+                <div className="rule-content">
+                  <h4>Fair Usage</h4>
+                  <p>No automated scraping beyond what you actively view on screen</p>
+                </div>
+              </Reveal>
+              <Reveal className="rule-item" delay={2}>
+                <div className="rule-number">02</div>
+                <div className="rule-content">
+                  <h4>Ethical Use</h4>
+                  <p>No harmful, illegal, or abusive usage of the AI capabilities</p>
+                </div>
+              </Reveal>
+              <Reveal className="rule-item" delay={3}>
+                <div className="rule-number">03</div>
+                <div className="rule-content">
+                  <h4>Respect Rights</h4>
+                  <p>Respect content owners and comply with local laws</p>
+                </div>
+              </Reveal>
+              <Reveal className="rule-item rule-item-highlight" delay={4}>
+                <div className="rule-check"><IconCheck size={20} /></div>
+                <div className="rule-content">
+                  <h4>Zero Config</h4>
+                  <p>API keys are built-in — no configuration or sharing required</p>
+                </div>
+              </Reveal>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Install CTA */}
+      <section id="install" className="section section-dark">
+        <div className="container">
+          <div className="cta-wrapper">
+            <div className="cta-bg">
+              <div className="cta-glow cta-glow-1" />
+              <div className="cta-glow cta-glow-2" />
+              <div className="cta-grid" />
+            </div>
+            
+            <Reveal>
+              <div className="cta-content">
+                <div className="cta-badge">
+                  <IconBrandChrome size={16} />
+                  Chrome Extension
+                </div>
+                <h2 className="cta-title">Ready to try <span>Oddvision</span>?</h2>
+                <p className="cta-text">
+                  One click install. Updates automatically. Free to start.
+                </p>
+                <a
+                  href="https://chromewebstore.google.com/detail/agckpadpigmebffnhleebpkllfpbggge?utm_source=item-share-cb"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="cta-button"
+                >
+                  <span className="cta-button-bg" />
+                  <IconRocket size={20} />
+                  Get Oddvision for Chrome
+                  <IconArrowRight size={18} />
+                </a>
+                <div className="cta-features">
+                  <div className="cta-feature">
+                    <IconCheck size={16} />
+                    Free to use
+                  </div>
+                  <div className="cta-feature">
+                    <IconCheck size={16} />
+                    No signup required
+                  </div>
+                  <div className="cta-feature">
+                    <IconCheck size={16} />
+                    Auto updates
+                  </div>
+                </div>
+              </div>
             </Reveal>
           </div>
         </div>

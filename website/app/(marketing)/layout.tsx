@@ -10,9 +10,8 @@ export default function MarketingLayout({
   return (
     <>
       <Header />
-      <main id="top">{children}</main>
+      <main>{children}</main>
       <Footer />
     </>
   );
 }
-
