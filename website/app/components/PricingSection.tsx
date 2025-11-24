@@ -38,14 +38,23 @@ export default function PricingSection() {
 
   useEffect(() => {
     let mounted = true;
+    console.log('[PricingSection] useEffect started, mounted:', mounted);
 
-    const handleAuthChange = async (currentUser: User | null) => {
-      if (!mounted) return;
+    const handleAuthChange = async (event: string, currentUser: User | null) => {
+      console.log('[PricingSection] handleAuthChange called:', { event, userId: currentUser?.id, mounted });
+      
+      if (!mounted) {
+        console.log('[PricingSection] Not mounted, returning early');
+        return;
+      }
       
       setUser(currentUser);
 
       if (currentUser) {
+        console.log('[PricingSection] Fetching pro status for user:', currentUser.id);
         const usage = await fetchProStatus(currentUser.id);
+        console.log('[PricingSection] Pro status fetched:', usage);
+        
         if (mounted) {
           if (usage) {
             setIsPro(!!usage.is_pro);
@@ -56,6 +65,7 @@ export default function PricingSection() {
           }
         }
       } else {
+        console.log('[PricingSection] No user, clearing state');
         if (mounted) {
           setIsPro(false);
           setSubscriptionData(null);
@@ -63,19 +73,27 @@ export default function PricingSection() {
       }
       
       if (mounted) {
+        console.log('[PricingSection] Setting loading to false');
         setLoading(false);
       }
     };
 
+    console.log('[PricingSection] Setting up onAuthStateChange listener');
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted) return;
+      console.log('[PricingSection] onAuthStateChange fired:', { event, hasSession: !!session, userId: session?.user?.id });
       
-      // Handle all auth events including INITIAL_SESSION
+      if (!mounted) {
+        console.log('[PricingSection] onAuthStateChange - not mounted, returning');
+        return;
+      }
+      
       const currentUser = session?.user ?? null;
-      await handleAuthChange(currentUser);
+      await handleAuthChange(event, currentUser);
     });
+    console.log('[PricingSection] onAuthStateChange listener set up');
 
     return () => {
+      console.log('[PricingSection] Cleanup - unmounting');
       mounted = false;
       subscription.unsubscribe();
     };
