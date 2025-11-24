@@ -38,101 +38,41 @@ export default function PricingSection() {
 
   useEffect(() => {
     let mounted = true;
-    let initialLoadComplete = false;
 
-    const init = async () => {
-      try {
-        const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
-        
-        if (userError) {
-           const { data: { session } } = await supabase.auth.getSession();
-           if (session?.user && mounted) {
-               setUser(session.user);
-               const usage = await fetchProStatus(session.user.id);
-               if (mounted) {
-                   if (usage) {
-                       setIsPro(!!usage.is_pro);
-                       setSubscriptionData(usage);
-                   } else {
-                       setIsPro(false);
-                       setSubscriptionData(null);
-                   }
-               }
-           } else {
-               if (mounted) {
-                   setUser(null);
-                   setIsPro(false);
-                   setSubscriptionData(null);
-               }
-           }
-        } else if (currentUser) {
-          if (mounted) setUser(currentUser);
-          const usage = await fetchProStatus(currentUser.id);
-          if (mounted) {
-            if (usage) {
-              setIsPro(!!usage.is_pro);
-              setSubscriptionData(usage);
-            } else {
-              setIsPro(false);
-              setSubscriptionData(null);
-            }
-          }
-        } else {
-          if (mounted) {
-              setUser(null);
-              setIsPro(false);
-              setSubscriptionData(null);
+    const handleAuthChange = async (currentUser: User | null) => {
+      if (!mounted) return;
+      
+      setUser(currentUser);
+
+      if (currentUser) {
+        const usage = await fetchProStatus(currentUser.id);
+        if (mounted) {
+          if (usage) {
+            setIsPro(!!usage.is_pro);
+            setSubscriptionData(usage);
+          } else {
+            setIsPro(false);
+            setSubscriptionData(null);
           }
         }
-      } catch (error) {
-        console.error("Session init error:", error);
-      } finally {
+      } else {
         if (mounted) {
-          setLoading(false);
-          initialLoadComplete = true;
+          setIsPro(false);
+          setSubscriptionData(null);
         }
       }
+      
+      if (mounted) {
+        setLoading(false);
+      }
     };
-
-    init();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
       
+      // Handle all auth events including INITIAL_SESSION
       const currentUser = session?.user ?? null;
-      setUser(currentUser);
-
-      if (!initialLoadComplete && event === 'INITIAL_SESSION') {
-        return;
-      }
-
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        if (currentUser) {
-            const usage = await fetchProStatus(currentUser.id);
-            if (mounted) {
-                if (usage) {
-                    setIsPro(!!usage.is_pro);
-                    setSubscriptionData(usage);
-                } else {
-                    setIsPro(false);
-                    setSubscriptionData(null);
-                }
-                setLoading(false);
-            }
-        } else {
-            if (mounted) {
-                setIsPro(false);
-                setSubscriptionData(null);
-                setLoading(false);
-            }
-        }
-      } else if (event === 'SIGNED_OUT') {
-        if (mounted) {
-            setIsPro(false);
-            setSubscriptionData(null);
-            setLoading(false);
-        }
-      }
+      await handleAuthChange(currentUser);
     });
 
     return () => {
