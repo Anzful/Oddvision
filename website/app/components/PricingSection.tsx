@@ -10,40 +10,47 @@ import Reveal from "./Reveal";
 
 const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID!;
 const PAYPAL_PLAN_ID = process.env.NEXT_PUBLIC_PAYPAL_PLAN_ID!;
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-const fetchProStatus = async (userId: string, retryCount = 0): Promise<any> => {
-  const MAX_RETRIES = 3;
-  const RETRY_DELAY = 500; // ms
-  
-  console.log('[fetchProStatus] Starting query for user:', userId, 'attempt:', retryCount + 1);
+// Use direct REST API call instead of Supabase client to avoid hanging during session recovery
+const fetchProStatusDirect = async (userId: string, accessToken: string): Promise<any> => {
+  console.log('[fetchProStatusDirect] Starting REST API query for user:', userId);
   
   try {
-    const { data: usage, error } = await supabase
-      .from('user_usage')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
     
-    console.log('[fetchProStatus] Query completed:', { usage, error });
-    
-    if (error) {
-      console.error("[fetchProStatus] Error fetching usage:", error);
-      // Retry on error if we haven't exceeded max retries
-      if (retryCount < MAX_RETRIES) {
-        console.log('[fetchProStatus] Retrying after delay...');
-        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
-        return fetchProStatus(userId, retryCount + 1);
+    const response = await fetch(
+      `${SUPABASE_URL}/rest/v1/user_usage?user_id=eq.${userId}&select=*`,
+      {
+        method: 'GET',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        signal: controller.signal,
       }
+    );
+    
+    clearTimeout(timeoutId);
+    
+    if (!response.ok) {
+      console.error('[fetchProStatusDirect] HTTP error:', response.status, response.statusText);
       return null;
     }
-    return usage;
-  } catch (err) {
-    console.error("[fetchProStatus] Exception:", err);
-    // Retry on exception if we haven't exceeded max retries
-    if (retryCount < MAX_RETRIES) {
-      console.log('[fetchProStatus] Retrying after exception...');
-      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
-      return fetchProStatus(userId, retryCount + 1);
+    
+    const data = await response.json();
+    console.log('[fetchProStatusDirect] Query completed:', data);
+    
+    // Return first result or null
+    return data && data.length > 0 ? data[0] : null;
+  } catch (err: any) {
+    if (err.name === 'AbortError') {
+      console.error('[fetchProStatusDirect] Request timed out after 10s');
+    } else {
+      console.error('[fetchProStatusDirect] Exception:', err);
     }
     return null;
   }
@@ -61,8 +68,11 @@ export default function PricingSection() {
     let isProcessing = false;
     console.log('[PricingSection] useEffect started, mounted:', mounted);
 
-    const handleAuthChange = async (event: string, currentUser: User | null) => {
-      console.log('[PricingSection] handleAuthChange called:', { event, userId: currentUser?.id, mounted, isProcessing });
+    const handleAuthChange = async (event: string, session: { user: User | null; access_token?: string } | null) => {
+      const currentUser = session?.user ?? null;
+      const accessToken = session?.access_token;
+      
+      console.log('[PricingSection] handleAuthChange called:', { event, userId: currentUser?.id, hasToken: !!accessToken, mounted, isProcessing });
       
       if (!mounted) {
         console.log('[PricingSection] Not mounted, returning early');
@@ -78,21 +88,9 @@ export default function PricingSection() {
       
       setUser(currentUser);
 
-      if (currentUser) {
-        // Wait a bit for Supabase to fully initialize on page refresh
-        // This prevents hanging queries during session recovery
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
-          console.log('[PricingSection] Waiting for Supabase to stabilize...');
-          await new Promise(resolve => setTimeout(resolve, 300));
-        }
-        
-        if (!mounted) {
-          isProcessing = false;
-          return;
-        }
-        
+      if (currentUser && accessToken) {
         console.log('[PricingSection] Fetching pro status for user:', currentUser.id);
-        const usage = await fetchProStatus(currentUser.id);
+        const usage = await fetchProStatusDirect(currentUser.id, accessToken);
         console.log('[PricingSection] Pro status fetched:', usage, 'mounted:', mounted);
         
         if (mounted) {
@@ -105,7 +103,7 @@ export default function PricingSection() {
           }
         }
       } else {
-        console.log('[PricingSection] No user, clearing state');
+        console.log('[PricingSection] No user or no token, clearing state');
         if (mounted) {
           setIsPro(false);
           setSubscriptionData(null);
@@ -129,8 +127,7 @@ export default function PricingSection() {
         return;
       }
       
-      const currentUser = session?.user ?? null;
-      await handleAuthChange(event, currentUser);
+      await handleAuthChange(event, session ? { user: session.user, access_token: session.access_token } : null);
     });
     console.log('[PricingSection] onAuthStateChange listener set up');
 
@@ -142,7 +139,7 @@ export default function PricingSection() {
         console.log('[PricingSection] Manual session check result:', { hasSession: !!session, userId: session?.user?.id });
         
         if (mounted && !hasReceivedEvent) {
-          await handleAuthChange('MANUAL_CHECK', session?.user ?? null);
+          await handleAuthChange('MANUAL_CHECK', session ? { user: session.user, access_token: session.access_token } : null);
         }
       }
     }, 100);
