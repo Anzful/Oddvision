@@ -11,36 +11,40 @@ import Reveal from "./Reveal";
 const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID!;
 const PAYPAL_PLAN_ID = process.env.NEXT_PUBLIC_PAYPAL_PLAN_ID!;
 
-const fetchProStatus = async (userId: string, signal?: AbortSignal) => {
-  console.log('[fetchProStatus] Starting query for user:', userId);
+const fetchProStatus = async (userId: string, retryCount = 0): Promise<any> => {
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY = 500; // ms
+  
+  console.log('[fetchProStatus] Starting query for user:', userId, 'attempt:', retryCount + 1);
+  
   try {
-    // Add timeout to prevent hanging
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Query timeout after 5s')), 5000);
-    });
-
-    const queryPromise = supabase
+    const { data: usage, error } = await supabase
       .from('user_usage')
       .select('*')
       .eq('user_id', userId)
       .maybeSingle();
-
-    const { data: usage, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
     
     console.log('[fetchProStatus] Query completed:', { usage, error });
     
-    if (signal?.aborted) {
-      console.log('[fetchProStatus] Aborted, returning null');
-      return null;
-    }
-    
     if (error) {
       console.error("[fetchProStatus] Error fetching usage:", error);
+      // Retry on error if we haven't exceeded max retries
+      if (retryCount < MAX_RETRIES) {
+        console.log('[fetchProStatus] Retrying after delay...');
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+        return fetchProStatus(userId, retryCount + 1);
+      }
       return null;
     }
     return usage;
   } catch (err) {
     console.error("[fetchProStatus] Exception:", err);
+    // Retry on exception if we haven't exceeded max retries
+    if (retryCount < MAX_RETRIES) {
+      console.log('[fetchProStatus] Retrying after exception...');
+      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+      return fetchProStatus(userId, retryCount + 1);
+    }
     return null;
   }
 };
@@ -55,7 +59,6 @@ export default function PricingSection() {
     let mounted = true;
     let hasReceivedEvent = false;
     let isProcessing = false;
-    const abortController = new AbortController();
     console.log('[PricingSection] useEffect started, mounted:', mounted);
 
     const handleAuthChange = async (event: string, currentUser: User | null) => {
@@ -77,7 +80,7 @@ export default function PricingSection() {
 
       if (currentUser) {
         console.log('[PricingSection] Fetching pro status for user:', currentUser.id);
-        const usage = await fetchProStatus(currentUser.id, abortController.signal);
+        const usage = await fetchProStatus(currentUser.id);
         console.log('[PricingSection] Pro status fetched:', usage, 'mounted:', mounted);
         
         if (mounted) {
@@ -136,7 +139,6 @@ export default function PricingSection() {
       console.log('[PricingSection] Cleanup - unmounting');
       mounted = false;
       isProcessing = false;
-      abortController.abort();
       clearTimeout(fallbackTimeout);
       subscription.unsubscribe();
     };
