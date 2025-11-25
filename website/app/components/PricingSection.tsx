@@ -79,6 +79,18 @@ export default function PricingSection() {
       setUser(currentUser);
 
       if (currentUser) {
+        // Wait a bit for Supabase to fully initialize on page refresh
+        // This prevents hanging queries during session recovery
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+          console.log('[PricingSection] Waiting for Supabase to stabilize...');
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
+        
+        if (!mounted) {
+          isProcessing = false;
+          return;
+        }
+        
         console.log('[PricingSection] Fetching pro status for user:', currentUser.id);
         const usage = await fetchProStatus(currentUser.id);
         console.log('[PricingSection] Pro status fetched:', usage, 'mounted:', mounted);
