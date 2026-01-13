@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Oddvision",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Stealth overlay to capture and analyze any webpage with fast AI, via simple keyboard shortcuts.",
   "permissions": [
     "storage",

@@ -17,6 +17,19 @@ const MAX_CONCURRENT = 2; // Process up to 2 requests simultaneously without que
 let totalProcessed = 0;
 let lastRequestTime = 0;
 
+// Hardcoded instruction appended to every AI request
+const HARDCODED_PROMPT = `Always determine the correct answer.
+
+If the question contains answer choices labeled with letters or numbers (A, B, C, 1, 2, etc.):
+- Respond ONLY with the correct choice label(s).
+- Do NOT explain, even if the question asks for an explanation.
+
+If the question contains NO answer choices:
+- If the question asks to explain, describe, or justify, provide an explanation.
+- Otherwise, provide only the direct answer.
+
+Never add unnecessary text.
+Never explain when choices are present.`;
 // Handle keyboard shortcut command
 chrome.commands.onCommand.addListener((command) => {
   // console.log("🔮 Oddvision: Command received:", command);
@@ -226,7 +239,7 @@ async function callGroq(apiKey, prompt) {
     body: JSON.stringify({
       model: 'llama-3.3-70b-versatile', // Fast and capable free model
       messages: [
-        { role: 'system', content: 'You are a helpful assistant that analyzes web page content and answers questions concisely and accurately.' },
+        { role: 'system', content: 'You are a helpful assistant that analyzes web page content and answers questions concisely and accurately.\n\n' + HARDCODED_PROMPT },
         { role: 'user', content: prompt }
       ],
       temperature: 0.7,
@@ -264,6 +277,7 @@ async function callOpenRouter(apiKey, prompt) {
     body: JSON.stringify({
       model: 'minimax/minimax-m2:free', // MiniMax M2 - FREE and working (10B params, 197K context)
       messages: [
+        { role: 'system', content: 'You are a helpful assistant that analyzes web page content and answers questions concisely and accurately.\n\n' + HARDCODED_PROMPT },
         { role: 'user', content: prompt }
       ],
       temperature: 0.7,
