@@ -12,10 +12,32 @@ try {
 // Request queue for rate limiting
 const requestQueue = [];
 let isProcessingQueue = false;
-const RATE_LIMIT_DELAY = 1200; // 1.2 seconds between requests (50 req/min max)
-const MAX_CONCURRENT = 2; // Process up to 2 requests simultaneously without queue
+const BASE_DELAY = 1200; // 1.2 seconds base delay
+const JITTER_MAX = 800; // 0-800ms random extra delay to spread out multi-user requests
 let totalProcessed = 0;
 let lastRequestTime = 0;
+
+// Get delay with random jitter to prevent multi-user API overload
+function getJitteredDelay() {
+  return BASE_DELAY + Math.floor(Math.random() * JITTER_MAX);
+}
+
+// Retry with exponential backoff on rate limit errors
+async function callWithRetry(fn, apiKey, prompt, maxRetries = 2) {
+  for (let i = 0; i <= maxRetries; i++) {
+    try {
+      return await fn(apiKey, prompt);
+    } catch (error) {
+      if (error.message.includes('429') && i < maxRetries) {
+        // Rate limited - wait longer with exponential backoff
+        const waitTime = (2 ** i) * 1000 + Math.random() * 1000;
+        await new Promise(r => setTimeout(r, waitTime));
+        continue;
+      }
+      throw error;
+    }
+  }
+}
 
 // Hardcoded instruction appended to every AI request
 const HARDCODED_PROMPT = `Always determine the correct answer.
@@ -88,7 +110,7 @@ async function addToQueue(prompt, sendResponse, tabId) {
   notifyQueueUpdate();
 
   // Smart queueing: If we're under rate limit and not already processing, start immediately
-  if (!isProcessingQueue && timeSinceLastRequest >= RATE_LIMIT_DELAY) {
+  if (!isProcessingQueue && timeSinceLastRequest >= BASE_DELAY) {
     // console.log(`⚡ Oddvision: Starting queue processing immediately`);
     lastRequestTime = now;
     processQueue();
@@ -120,7 +142,7 @@ async function processRequest(prompt, sendResponse, tabId, timestamp) {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       console.warn('Oddvision: Request blocked (not logged in)');
-      sendResponse({ success: false, error: "Please log in via the extension popup to use AI features." });
+      sendResponse({ success: false, error: "Sign in to continue" });
       return;
     }
 
@@ -137,14 +159,14 @@ async function processRequest(prompt, sendResponse, tabId, timestamp) {
       // Actually, if RPC fails, it might be network. Let's fail safe if possible, but strict for limits.
       // If error is "function not found", it means SQL wasn't run.
       // Let's throw to be safe.
-      throw new Error("Could not verify usage limits: " + usageError.message);
+      throw new Error("Connection issue");
     }
 
     if (usageData && !usageData.allowed) {
       // console.warn('Oddvision: Usage limit reached');
       sendResponse({
         success: false,
-        error: usageData.error || "Weekly limit reached (3/3). Wait for reset or upgrade."
+        error: "Limit reached"
       });
       return;
     }
@@ -180,9 +202,9 @@ async function processQueue() {
 
     await processRequest(prompt, sendResponse, tabId, timestamp);
 
-    // Rate limiting: Wait before next request
+    // Rate limiting: Wait with jitter before next request
     if (requestQueue.length > 0) {
-      await new Promise(resolve => setTimeout(resolve, RATE_LIMIT_DELAY));
+      await new Promise(resolve => setTimeout(resolve, getJitteredDelay()));
       lastRequestTime = Date.now();
     }
   }
@@ -203,7 +225,7 @@ async function callAIWithFailover(prompt) {
 
   let lastError = null;
 
-  // Try each provider in order
+  // Try each provider in order with retry logic
   for (const provider of providers) {
     if (!provider.key) {
       // console.log(`Oddvision: Skipping ${provider.name} (no API key)`);
@@ -212,7 +234,7 @@ async function callAIWithFailover(prompt) {
 
     try {
       // console.log(`Oddvision: Trying ${provider.name}...`);
-      const response = await provider.fn(provider.key, prompt);
+      const response = await callWithRetry(provider.fn, provider.key, prompt);
       // console.log(`Oddvision: ✅ Success with ${provider.name}`);
       return { response, model: provider.name };
     } catch (error) {
@@ -222,8 +244,8 @@ async function callAIWithFailover(prompt) {
     }
   }
 
-  // All providers failed
-  throw new Error(`All providers failed. Last error: ${lastError?.message || 'No API provider available'}`);
+  // All providers failed - use short, friendly message
+  throw new Error("Busy, try again");
 }
 
 // AI API calls (no CORS restrictions here!) - Only FREE providers
@@ -275,7 +297,7 @@ async function callOpenRouter(apiKey, prompt) {
       'X-Title': 'Oddvision Extension'
     },
     body: JSON.stringify({
-      model: 'google/gemini-2.0-flash-exp:free', // Google Gemini 2.0 Flash - FREE and working
+      model: 'nvidia/nemotron-3-nano-30b-a3b:free', // NVIDIA Nemotron 30B - FREE
       messages: [
         { role: 'system', content: 'You are a helpful assistant that analyzes web page content and answers questions concisely and accurately.\n\n' + HARDCODED_PROMPT },
         { role: 'user', content: prompt }
@@ -287,7 +309,6 @@ async function callOpenRouter(apiKey, prompt) {
 
   if (!response.ok) {
     const errorText = await response.text();
-    // console.error('OpenRouter error response:', errorText);
     let errorMsg = errorText;
     try {
       const error = JSON.parse(errorText);

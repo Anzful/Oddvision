@@ -1,6 +1,7 @@
 .env
 .env.local
 secrets.js
+load-test.js
 
 # Node modules if you generate icons
 node_modules/

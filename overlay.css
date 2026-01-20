@@ -5,12 +5,14 @@
   position: fixed;
   top: 20px;
   right: 20px;
-  padding: 16px 24px;
-  border-radius: 8px;
+  padding: 8px 14px;
+  border-radius: 6px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  font-size: 14px;
-  font-weight: 500;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  font-size: 11px;
+  font-weight: 400;
+  max-width: 280px;
+  opacity: 0.92;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   z-index: 2147483646; /* Just below overlay */
   animation: oddvision-notification-slide-in 0.3s ease-out;
   pointer-events: none;
@@ -44,7 +46,7 @@
 }
 
 .oddvision-notification-error {
-  background: #f44336;
+  background: rgba(220, 60, 60, 0.9);
   color: white;
 }
 
@@ -72,11 +74,11 @@
 
 #oddvision-indicator-dot::before {
   content: '';
-  width: 12px;
-  height: 12px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   animation: oddvision-indicator-pop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 
 .oddvision-indicator-counter {
@@ -129,7 +131,7 @@
 
 #oddvision-overlay {
   position: fixed;
-  width: 550px;
+  width: 500px;
   height: auto;
   max-height: 80vh;
   background: transparent;
@@ -237,6 +239,27 @@
   background: rgba(100, 100, 100, 0.15);
   opacity: 1;
   transform: scale(1.1);
+}
+
+.oddvision-copy {
+  background: none;
+  border: none;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: opacity 0.15s;
+  opacity: 0.6;
+}
+
+.oddvision-copy:hover {
+  opacity: 1;
 }
 
 .oddvision-close {

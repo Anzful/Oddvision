@@ -92,7 +92,7 @@ async function sendContextToAI() {
   }
   
   if (!pageContent || pageContent.length === 0) {
-    showNotification('❌ No context captured! Press Alt+1 first.', 'error');
+    showNotification('Capture first (Alt+1)', 'error');
     return;
   }
   
@@ -138,7 +138,7 @@ async function sendContextToAI() {
     }
   } catch (error) {
     // console.error('Oddvision AI Error:', error);
-    showNotification(`❌ AI Error: ${error.message}`, 'error');
+    showNotification(error.message, 'error');
   } finally {
     isProcessing = false;
   }
@@ -267,6 +267,7 @@ function createOverlay() {
       <div class="oddvision-header">
         <h2>🔮 Oddvision</h2>
         <div class="oddvision-header-buttons">
+          <button class="oddvision-copy" id="oddvision-copy-btn" title="Copy response">📋</button>
           <button class="oddvision-color-toggle" id="oddvision-color-toggle-btn" title="Toggle text color (Alt+4)">⚫</button>
           <button class="oddvision-close" id="oddvision-close-btn" title="Close (Alt+3)">×</button>
         </div>
@@ -274,8 +275,8 @@ function createOverlay() {
       <div class="oddvision-content">
         <div class="oddvision-chat-area" id="oddvision-chat-area">
           <div class="oddvision-welcome">
-            <p>AI analysis will appear here</p>
-            <p class="oddvision-tip">💡 Press Alt+1 to capture, Alt+2 to analyze</p>
+            <p>Analysis will appear here</p>
+            <p class="oddvision-tip">Alt+1 capture · Alt+2 analyze</p>
           </div>
         </div>
       </div>
@@ -300,9 +301,11 @@ function createOverlay() {
   // Set up event listeners
   const closeBtn = overlay.querySelector('#oddvision-close-btn');
   const colorToggleBtn = overlay.querySelector('#oddvision-color-toggle-btn');
-  
+  const copyBtn = overlay.querySelector('#oddvision-copy-btn');
+
   closeBtn.addEventListener('click', hideOverlay);
   colorToggleBtn.addEventListener('click', toggleTextColor);
+  copyBtn.addEventListener('click', copyResponse);
   
   // Load saved text color preference
   chrome.storage.sync.get(['textColor'], (result) => {
@@ -377,6 +380,27 @@ function hideOverlay() {
     overlayElement.style.display = 'none';
   }
   overlayVisible = false;
+}
+
+// Copy AI response to clipboard
+function copyResponse() {
+  if (!lastAIResponse) {
+    showNotification('Nothing to copy', 'warning');
+    return;
+  }
+
+  navigator.clipboard.writeText(lastAIResponse).then(() => {
+    // Brief visual feedback on the button
+    const copyBtn = document.querySelector('#oddvision-copy-btn');
+    if (copyBtn) {
+      copyBtn.textContent = '✓';
+      setTimeout(() => {
+        copyBtn.textContent = '📋';
+      }, 1000);
+    }
+  }).catch(() => {
+    showNotification('Copy failed', 'error');
+  });
 }
 
 // Toggle text color between white and black

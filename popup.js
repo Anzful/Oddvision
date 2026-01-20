@@ -131,7 +131,6 @@ async function fetchUsage(user) {
 loginBtn.addEventListener('click', async () => {
   try {
     const redirectUrl = chrome.identity.getRedirectURL();
-    console.log('Redirect URL:', redirectUrl); 
     // User must add this URL to Supabase > Authentication > URL Configuration > Redirect URLs
 
     // 1. Get Auth URL
@@ -151,14 +150,13 @@ loginBtn.addEventListener('click', async () => {
     }, async (responseUrl) => {
       // Handle User Cancelation or Errors
       if (chrome.runtime.lastError) {
-        // console.warn('Auth flow warning:', chrome.runtime.lastError.message);
         // Don't alert immediately if it's just "User cancelled" which can be noisy
         if (!chrome.runtime.lastError.message.includes("User cancelled")) {
             alert('Login failed: ' + chrome.runtime.lastError.message);
         }
         return;
       }
-      
+
       // 3. Parse tokens
       if (responseUrl) {
         // Supabase returns tokens in the hash fragment
