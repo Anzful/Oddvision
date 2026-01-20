@@ -131,7 +131,7 @@ async function fetchUsage(user) {
 loginBtn.addEventListener('click', async () => {
   try {
     const redirectUrl = chrome.identity.getRedirectURL();
-    // console.log('Redirect URL:', redirectUrl); 
+    console.log('Redirect URL:', redirectUrl); 
     // User must add this URL to Supabase > Authentication > URL Configuration > Redirect URLs
 
     // 1. Get Auth URL

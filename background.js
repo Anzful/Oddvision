@@ -33,11 +33,11 @@ Never explain when choices are present.`;
 // Handle keyboard shortcut command
 chrome.commands.onCommand.addListener((command) => {
   // console.log("🔮 Oddvision: Command received:", command);
-  
+
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (tabs[0]) {
       let action = '';
-      
+
       if (command === 'capture-context') {
         action = 'capture-context';
       } else if (command === 'ask-ai') {
@@ -47,7 +47,7 @@ chrome.commands.onCommand.addListener((command) => {
       } else if (command === 'toggle-text-color') {
         action = 'toggle-text-color';
       }
-      
+
       if (action) {
         // console.log("🔮 Oddvision: Sending action to tab:", action, tabs[0].id);
         chrome.tabs.sendMessage(tabs[0].id, { action }).catch(err => {
@@ -67,7 +67,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     addToQueue(request.prompt, sendResponse, sender.tab?.id);
     return true; // Keep channel open for async response
   }
-  
+
   // Get queue count (minimal)
   if (request.action === 'getQueueCount') {
     sendResponse({ count: requestQueue.length });
@@ -79,14 +79,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 async function addToQueue(prompt, sendResponse, tabId) {
   const now = Date.now();
   const timeSinceLastRequest = now - lastRequestTime;
-  
+
   // Always add to queue first
   requestQueue.push({ prompt, sendResponse, tabId, timestamp: now });
   // console.log(`🔮 Oddvision: Queued request #${totalProcessed + requestQueue.length} (${requestQueue.length} in queue)`);
-  
+
   // Notify all tabs about queue update
   notifyQueueUpdate();
-  
+
   // Smart queueing: If we're under rate limit and not already processing, start immediately
   if (!isProcessingQueue && timeSinceLastRequest >= RATE_LIMIT_DELAY) {
     // console.log(`⚡ Oddvision: Starting queue processing immediately`);
@@ -102,10 +102,10 @@ async function addToQueue(prompt, sendResponse, tabId) {
 function notifyQueueUpdate() {
   chrome.tabs.query({}, (tabs) => {
     tabs.forEach(tab => {
-      chrome.tabs.sendMessage(tab.id, { 
-        action: 'queueUpdate', 
-        count: requestQueue.length 
-      }).catch(() => {});
+      chrome.tabs.sendMessage(tab.id, {
+        action: 'queueUpdate',
+        count: requestQueue.length
+      }).catch(() => { });
     });
   });
 }
@@ -114,7 +114,7 @@ function notifyQueueUpdate() {
 async function processRequest(prompt, sendResponse, tabId, timestamp) {
   const waitTime = ((Date.now() - timestamp) / 1000).toFixed(1);
   totalProcessed++;
-  
+
   try {
     // Enforce Login: Check session before processing
     const { data: { session } } = await supabase.auth.getSession();
@@ -130,7 +130,7 @@ async function processRequest(prompt, sendResponse, tabId, timestamp) {
 
     // Check usage limits via RPC
     const { data: usageData, error: usageError } = await supabase.rpc('increment_prompt_usage');
-    
+
     if (usageError) {
       // console.error('Usage check failed:', usageError);
       // Fail open or closed? Closed for now to prevent abuse if DB is down, but be careful.
@@ -142,9 +142,9 @@ async function processRequest(prompt, sendResponse, tabId, timestamp) {
 
     if (usageData && !usageData.allowed) {
       // console.warn('Oddvision: Usage limit reached');
-      sendResponse({ 
-        success: false, 
-        error: usageData.error || "Weekly limit reached (3/3). Wait for reset or upgrade." 
+      sendResponse({
+        success: false,
+        error: usageData.error || "Weekly limit reached (3/3). Wait for reset or upgrade."
       });
       return;
     }
@@ -153,11 +153,11 @@ async function processRequest(prompt, sendResponse, tabId, timestamp) {
     // console.log(`Oddvision: Usage approved. Remaining: ${remaining}`);
 
     const result = await callAIWithFailover(prompt);
-    
+
     // Track usage (fire and forget)
     // We already tracked the *count* via RPC, but we still log details here if we want
     trackUsage(prompt, result.model);
-    
+
     sendResponse({ success: true, response: result.response, model: result.model, remaining });
     // console.log(`✅ Oddvision: Completed request #${totalProcessed} via ${result.model}`);
   } catch (error) {
@@ -169,24 +169,24 @@ async function processRequest(prompt, sendResponse, tabId, timestamp) {
 // Process queue with rate limiting
 async function processQueue() {
   if (isProcessingQueue || requestQueue.length === 0) return;
-  
+
   isProcessingQueue = true;
-  
+
   while (requestQueue.length > 0) {
     const { prompt, sendResponse, tabId, timestamp } = requestQueue.shift();
-    
+
     // Notify all tabs about queue update
     notifyQueueUpdate();
-    
+
     await processRequest(prompt, sendResponse, tabId, timestamp);
-    
+
     // Rate limiting: Wait before next request
     if (requestQueue.length > 0) {
       await new Promise(resolve => setTimeout(resolve, RATE_LIMIT_DELAY));
       lastRequestTime = Date.now();
     }
   }
-  
+
   isProcessingQueue = false;
   notifyQueueUpdate();
   // console.log(`🎉 Oddvision: Queue cleared! Total processed: ${totalProcessed}`);
@@ -200,16 +200,16 @@ async function callAIWithFailover(prompt) {
     { name: 'groq', key: OddvisionConfig.apiKey, fn: callGroq },
     { name: 'openrouter', key: OddvisionConfig.openrouterKey, fn: callOpenRouter }
   ];
-  
+
   let lastError = null;
-  
+
   // Try each provider in order
   for (const provider of providers) {
     if (!provider.key) {
       // console.log(`Oddvision: Skipping ${provider.name} (no API key)`);
       continue;
     }
-    
+
     try {
       // console.log(`Oddvision: Trying ${provider.name}...`);
       const response = await provider.fn(provider.key, prompt);
@@ -221,7 +221,7 @@ async function callAIWithFailover(prompt) {
       // Continue to next provider
     }
   }
-  
+
   // All providers failed
   throw new Error(`All providers failed. Last error: ${lastError?.message || 'No API provider available'}`);
 }
@@ -248,7 +248,7 @@ async function callGroq(apiKey, prompt) {
       stream: false
     })
   });
-  
+
   if (!response.ok) {
     const errorText = await response.text();
     let errorMsg = errorText;
@@ -260,7 +260,7 @@ async function callGroq(apiKey, prompt) {
     }
     throw new Error(`Groq API error: ${errorMsg}`);
   }
-  
+
   const data = await response.json();
   return data.choices[0].message.content;
 }
@@ -275,7 +275,7 @@ async function callOpenRouter(apiKey, prompt) {
       'X-Title': 'Oddvision Extension'
     },
     body: JSON.stringify({
-      model: 'minimax/minimax-m2:free', // MiniMax M2 - FREE and working (10B params, 197K context)
+      model: 'google/gemini-2.0-flash-exp:free', // Google Gemini 2.0 Flash - FREE and working
       messages: [
         { role: 'system', content: 'You are a helpful assistant that analyzes web page content and answers questions concisely and accurately.\n\n' + HARDCODED_PROMPT },
         { role: 'user', content: prompt }
@@ -284,7 +284,7 @@ async function callOpenRouter(apiKey, prompt) {
       max_tokens: 800
     })
   });
-  
+
   if (!response.ok) {
     const errorText = await response.text();
     // console.error('OpenRouter error response:', errorText);
@@ -297,7 +297,7 @@ async function callOpenRouter(apiKey, prompt) {
     }
     throw new Error(`OpenRouter: ${errorMsg}`);
   }
-  
+
   const data = await response.json();
   return data.choices[0].message.content;
 }
@@ -336,7 +336,7 @@ async function trackUsage(prompt, model) {
         prompt_length: prompt ? prompt.length : 0,
         model: model
       });
-      
+
     if (error) {
       // Silent fail in production
     }
