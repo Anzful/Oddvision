@@ -1,305 +1,484 @@
-// Oddvision Options Script
+// Oddvision Options Script - Enhanced Admin Panel
 //
-// This page manages UI preferences and admin panel for founders.
+// Features: Tabbed interface, Usage analytics, User management
 //
+
+// DOM Elements
 const settingsForm = document.getElementById('settings-form');
 const notification = document.getElementById('notification');
 const overlayPositionSelect = document.getElementById('overlay-position');
 const accountEmailEl = document.getElementById('account-email');
-const settingsLogoutBtn = document.getElementById('settings-logout-btn');
-const foundersPanel = document.getElementById('founders-panel');
+const logoutBtn = document.getElementById('logout-btn');
+const adminTab = document.getElementById('admin-tab');
 const aiProviderSelect = document.getElementById('ai-provider');
+const userSearchInput = document.getElementById('user-search');
 
-// Initialize on page load
+// State
+let currentPeriod = 'today';
+let allUsers = [];
+let usageData = {};
+
+// Initialize
 document.addEventListener('DOMContentLoaded', async () => {
   await initPage();
+  setupTabs();
+  setupPeriodTabs();
+  setupSearch();
 });
 
 async function initPage() {
-  // Load overlay position setting
+  // Load overlay position
   chrome.storage.sync.get(['overlayPosition'], (result) => {
-    if (result.overlayPosition) {
-      overlayPositionSelect.value = result.overlayPosition;
-    } else {
-      overlayPositionSelect.value = 'top-right';
-    }
+    overlayPositionSelect.value = result.overlayPosition || 'top-right';
   });
 
-  // Check session and load user info
+  // Check session
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
       accountEmailEl.textContent = session.user.email;
 
-      // Check if user is a founder
-      const isFounder = OddvisionConfig.founderIds &&
-                        OddvisionConfig.founderIds.includes(session.user.id);
-
+      // Check founder status
+      const isFounder = OddvisionConfig.founderIds?.includes(session.user.id);
       if (isFounder) {
-        showFoundersPanel();
+        adminTab.classList.remove('hidden');
+        loadAdminData();
       }
     } else {
       accountEmailEl.textContent = 'Not signed in';
     }
   } catch (err) {
-    accountEmailEl.textContent = 'Error loading account';
+    accountEmailEl.textContent = 'Error';
   }
 }
 
-// Show founders panel and load data
-async function showFoundersPanel() {
-  foundersPanel.classList.add('visible');
+// Tab Navigation
+function setupTabs() {
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const tabId = tab.dataset.tab;
+      
+      // Update tab buttons
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      
+      // Update tab content
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.getElementById(`tab-${tabId}`).classList.add('active');
+    });
+  });
+}
 
+// Period Tabs for Analytics
+function setupPeriodTabs() {
+  document.querySelectorAll('.period-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.period-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      currentPeriod = tab.dataset.period;
+      updateStatsDisplay();
+    });
+  });
+}
+
+// Search functionality
+function setupSearch() {
+  userSearchInput?.addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase();
+    filterUsersTable(query);
+  });
+}
+
+function filterUsersTable(query) {
+  const rows = document.querySelectorAll('#users-table-body tr');
+  rows.forEach(row => {
+    const email = row.querySelector('.user-email')?.textContent.toLowerCase() || '';
+    row.style.display = email.includes(query) ? '' : 'none';
+  });
+}
+
+// Load Admin Data
+async function loadAdminData() {
+  await Promise.all([
+    loadAnalytics(),
+    loadUsersTable(),
+    loadUsageChart()
+  ]);
+  
   // Load AI provider setting
   chrome.storage.sync.get(['aiProvider'], (result) => {
-    if (result.aiProvider) {
-      aiProviderSelect.value = result.aiProvider;
-    } else {
-      aiProviderSelect.value = 'default';
+    if (aiProviderSelect) {
+      aiProviderSelect.value = result.aiProvider || 'default';
     }
   });
-
-  // Load analytics
-  await loadAnalytics();
-  await loadUsersTable();
 }
 
-// Load analytics stats using RPC function
+// Load Analytics
 async function loadAnalytics() {
   try {
-    // Use the admin stats RPC function
-    const { data, error } = await supabase.rpc('get_admin_stats');
-
-    if (error) throw error;
-
-    if (data && data[0]) {
-      const stats = data[0];
-      document.getElementById('stat-total-users').textContent = stats.total_auth_users;
-      document.getElementById('stat-pro-users').textContent = stats.pro_users;
-      document.getElementById('stat-total-prompts').textContent = stats.total_prompts;
+    // Try RPC first
+    const { data, error } = await supabase.rpc('get_admin_stats_detailed');
+    
+    if (error) {
+      // Fallback to basic query
+      return await loadAnalyticsFallback();
+    }
+    
+    if (data) {
+      usageData = data;
+      updateStatsDisplay();
     }
   } catch (err) {
-    console.error('Failed to load analytics:', err);
-    // Fallback to old method if RPC doesn't exist yet
-    try {
-      const { data: users } = await supabase.from('user_usage').select('*');
-      if (users) {
-        document.getElementById('stat-total-users').textContent = users.length;
-        document.getElementById('stat-pro-users').textContent = users.filter(u => u.is_pro).length;
-        document.getElementById('stat-total-prompts').textContent = users.reduce((sum, u) => sum + (u.prompts_count || 0), 0);
-      }
-    } catch (e) {}
+    console.error('Analytics error:', err);
+    await loadAnalyticsFallback();
   }
 }
 
-// Load users table - gets ALL auth users via RPC
-async function loadUsersTable() {
-  const tbody = document.getElementById('users-table-body');
-
+async function loadAnalyticsFallback() {
   try {
-    // Use RPC function to get all auth users with their usage data
-    const { data: users, error } = await supabase.rpc('get_all_users_for_admin');
-
-    if (error) {
-      console.error('RPC error:', error);
-      // Fallback to old method if RPC doesn't exist
-      return await loadUsersTableFallback();
+    const { data: users } = await supabase.from('user_usage').select('*');
+    const { data: logs } = await supabase.from('usage_logs').select('created_at');
+    
+    if (users) {
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const weekStart = new Date(todayStart);
+      weekStart.setDate(weekStart.getDate() - 7);
+      const monthStart = new Date(todayStart);
+      monthStart.setMonth(monthStart.getMonth() - 1);
+      
+      const totalPrompts = users.reduce((sum, u) => sum + (u.prompts_count || 0), 0);
+      
+      // Count logs by period
+      let todayPrompts = 0, weekPrompts = 0, monthPrompts = 0;
+      if (logs) {
+        logs.forEach(log => {
+          const logDate = new Date(log.created_at);
+          if (logDate >= todayStart) todayPrompts++;
+          if (logDate >= weekStart) weekPrompts++;
+          if (logDate >= monthStart) monthPrompts++;
+        });
+      }
+      
+      // Count active users today
+      const activeToday = users.filter(u => {
+        const lastActive = new Date(u.last_reset_at);
+        return lastActive >= todayStart;
+      }).length;
+      
+      usageData = {
+        total_users: users.length,
+        pro_users: users.filter(u => u.is_pro).length,
+        active_today: activeToday,
+        prompts_today: todayPrompts,
+        prompts_week: weekPrompts,
+        prompts_month: monthPrompts,
+        prompts_all: totalPrompts
+      };
+      
+      updateStatsDisplay();
     }
+  } catch (err) {
+    console.error('Fallback analytics error:', err);
+  }
+}
 
-    if (!users || users.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-dim);">No users found</td></tr>';
-      return;
+function updateStatsDisplay() {
+  const d = usageData;
+  
+  document.getElementById('stat-total-users').textContent = d.total_users || 0;
+  document.getElementById('stat-pro-users').textContent = d.pro_users || 0;
+  document.getElementById('stat-active-today').textContent = d.active_today || 0;
+  
+  // Update prompts based on period
+  let promptCount = 0;
+  switch (currentPeriod) {
+    case 'today':
+      promptCount = d.prompts_today || 0;
+      break;
+    case 'week':
+      promptCount = d.prompts_week || 0;
+      break;
+    case 'month':
+      promptCount = d.prompts_month || 0;
+      break;
+    case 'all':
+      promptCount = d.prompts_all || 0;
+      break;
+  }
+  
+  document.getElementById('stat-prompts-period').textContent = formatNumber(promptCount);
+  
+  // Average per user
+  const avgPerUser = d.total_users > 0 ? (promptCount / d.total_users).toFixed(1) : '0';
+  document.getElementById('stat-avg-prompts').textContent = avgPerUser;
+}
+
+// Load Usage Chart
+async function loadUsageChart() {
+  const chartContainer = document.getElementById('usage-chart');
+  
+  try {
+    // Get last 7 days of usage
+    const { data: logs, error } = await supabase
+      .from('usage_logs')
+      .select('created_at')
+      .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+    
+    if (error) throw error;
+    
+    // Group by day
+    const days = {};
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    
+    // Initialize last 7 days
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const key = date.toISOString().split('T')[0];
+      days[key] = { count: 0, label: dayNames[date.getDay()] };
     }
-
-    // Build table rows
-    tbody.innerHTML = users.map(user => {
-      const isPro = user.is_pro || false;
-      const lastActive = user.last_reset_at ? formatDate(user.last_reset_at) : 'Never';
-      const email = user.email || 'No email';
-      const prompts = user.prompts_count || 0;
-
+    
+    // Count logs per day
+    if (logs) {
+      logs.forEach(log => {
+        const key = log.created_at.split('T')[0];
+        if (days[key]) {
+          days[key].count++;
+        }
+      });
+    }
+    
+    // Find max for scaling
+    const maxCount = Math.max(...Object.values(days).map(d => d.count), 1);
+    
+    // Build chart HTML
+    chartContainer.innerHTML = Object.entries(days).map(([date, data]) => {
+      const height = Math.max((data.count / maxCount) * 160, 4);
       return `
-        <tr data-user-id="${user.user_id}">
-          <td>${escapeHtml(email)}</td>
-          <td>${prompts}</td>
-          <td><span class="badge ${isPro ? 'badge-pro' : 'badge-free'}">${isPro ? 'Pro' : 'Free'}</span></td>
-          <td>${lastActive}</td>
-          <td>
-            <button class="toggle-pro-btn ${isPro ? 'is-pro' : ''}" data-user-id="${user.user_id}" data-is-pro="${isPro}">
-              ${isPro ? '→ Free' : '→ Pro'}
-            </button>
-          </td>
-        </tr>
+        <div class="chart-bar-wrapper">
+          <div class="chart-bar" style="height: ${height}px;">
+            <span class="chart-bar-value">${data.count}</span>
+          </div>
+          <span class="chart-bar-label">${data.label}</span>
+        </div>
       `;
     }).join('');
-
-    // Add click handlers for toggle buttons
-    tbody.querySelectorAll('.toggle-pro-btn').forEach(btn => {
-      btn.addEventListener('click', handleProToggle);
-    });
-
+    
   } catch (err) {
-    console.error('Failed to load users:', err);
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #ef4444;">Error loading users</td></tr>';
+    console.error('Chart error:', err);
+    chartContainer.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 40px;">Unable to load chart data</div>';
   }
 }
 
-// Fallback if RPC function doesn't exist yet
-async function loadUsersTableFallback() {
+// Load Users Table
+async function loadUsersTable() {
   const tbody = document.getElementById('users-table-body');
-
-  const { data: users, error } = await supabase
-    .from('user_usage')
-    .select('*')
-    .order('last_reset_at', { ascending: false });
-
-  if (error || !users || users.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-dim);">No users found (run SQL setup)</td></tr>';
-    return;
+  
+  try {
+    // Try RPC function for full user data
+    let users;
+    const { data, error } = await supabase.rpc('get_all_users_for_admin');
+    
+    if (error) {
+      // Fallback to direct query
+      const { data: fallbackData } = await supabase
+        .from('user_usage')
+        .select('*')
+        .order('last_reset_at', { ascending: false });
+      users = fallbackData;
+    } else {
+      users = data;
+    }
+    
+    if (!users || users.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">No users found</td></tr>';
+      return;
+    }
+    
+    allUsers = users;
+    renderUsersTable(users);
+    
+  } catch (err) {
+    console.error('Users table error:', err);
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--red);">Error loading users</td></tr>';
   }
+}
 
+function renderUsersTable(users) {
+  const tbody = document.getElementById('users-table-body');
+  const limit = 3; // Free user limit
+  
   tbody.innerHTML = users.map(user => {
-    const isPro = user.is_pro;
-    const lastActive = user.last_reset_at ? formatDate(user.last_reset_at) : 'Never';
-    const email = user.email || user.user_id.substring(0, 8) + '...';
-
+    const isPro = user.is_pro || false;
+    const email = user.email || 'Unknown';
+    const weekPrompts = user.prompts_count || 0;
+    const totalPrompts = user.total_prompts || weekPrompts;
+    const lastActive = formatRelativeDate(user.last_reset_at);
+    const initial = email.charAt(0).toUpperCase();
+    const userId = user.user_id;
+    
+    // Usage percentage for bar
+    const usagePercent = isPro ? 30 : Math.min((weekPrompts / limit) * 100, 100);
+    const isHighUsage = !isPro && weekPrompts >= limit;
+    
     return `
-      <tr data-user-id="${user.user_id}">
-        <td>${escapeHtml(email)}</td>
-        <td>${user.prompts_count || 0}</td>
+      <tr data-user-id="${userId}">
+        <td>
+          <div class="user-cell">
+            <div class="user-avatar">${initial}</div>
+            <div class="user-info">
+              <span class="user-email">${escapeHtml(email)}</span>
+              <span class="user-id">${userId.substring(0, 8)}...</span>
+            </div>
+          </div>
+        </td>
         <td><span class="badge ${isPro ? 'badge-pro' : 'badge-free'}">${isPro ? 'Pro' : 'Free'}</span></td>
+        <td>
+          <div class="usage-bar-container">
+            <span>${weekPrompts}${isPro ? '' : `/${limit}`}</span>
+            <div class="usage-bar">
+              <div class="usage-bar-fill ${isHighUsage ? 'high' : ''}" style="width: ${usagePercent}%"></div>
+            </div>
+          </div>
+        </td>
+        <td>${formatNumber(totalPrompts)}</td>
         <td>${lastActive}</td>
         <td>
-          <button class="toggle-pro-btn ${isPro ? 'is-pro' : ''}" data-user-id="${user.user_id}" data-is-pro="${isPro}">
-            ${isPro ? '→ Free' : '→ Pro'}
+          <button class="toggle-pro-btn ${isPro ? 'is-pro' : ''}" data-user-id="${userId}" data-is-pro="${isPro}">
+            ${isPro ? 'Remove Pro' : 'Make Pro'}
           </button>
         </td>
       </tr>
     `;
   }).join('');
-
+  
+  // Add event listeners
   tbody.querySelectorAll('.toggle-pro-btn').forEach(btn => {
     btn.addEventListener('click', handleProToggle);
   });
 }
 
-// Handle pro status toggle
+// Handle Pro Status Toggle
 async function handleProToggle(e) {
   const btn = e.target;
   const userId = btn.dataset.userId;
   const currentlyPro = btn.dataset.isPro === 'true';
-  const newProStatus = !currentlyPro;
-
-  // Disable button during update
+  const newStatus = !currentlyPro;
+  
   btn.disabled = true;
   btn.textContent = '...';
-
+  
   try {
-    // Use RPC function to toggle pro status (handles insert/update)
-    const { data, error } = await supabase.rpc('toggle_user_pro_status', {
+    // Try RPC
+    const { error } = await supabase.rpc('toggle_user_pro_status', {
       target_user_id: userId,
-      new_pro_status: newProStatus
+      new_pro_status: newStatus
     });
-
+    
     if (error) {
-      console.error('RPC error:', error);
-      // Fallback to direct update if RPC doesn't exist
+      // Fallback to direct update
       const { error: updateError } = await supabase
         .from('user_usage')
-        .update({ is_pro: newProStatus })
+        .update({ is_pro: newStatus })
         .eq('user_id', userId);
-
-      if (updateError) throw new Error(updateError.message);
+      
+      if (updateError) throw updateError;
     }
-
+    
     // Update UI
-    btn.dataset.isPro = newProStatus.toString();
-    btn.textContent = newProStatus ? '→ Free' : '→ Pro';
-    btn.classList.toggle('is-pro', newProStatus);
-
-    // Update badge in same row
+    btn.dataset.isPro = newStatus.toString();
+    btn.textContent = newStatus ? 'Remove Pro' : 'Make Pro';
+    btn.classList.toggle('is-pro', newStatus);
+    
+    // Update badge
     const row = btn.closest('tr');
     const badge = row.querySelector('.badge');
-    badge.className = `badge ${newProStatus ? 'badge-pro' : 'badge-free'}`;
-    badge.textContent = newProStatus ? 'Pro' : 'Free';
-
+    badge.className = `badge ${newStatus ? 'badge-pro' : 'badge-free'}`;
+    badge.textContent = newStatus ? 'Pro' : 'Free';
+    
     // Refresh analytics
     await loadAnalytics();
-
-    showNotification(`User ${newProStatus ? 'upgraded to Pro' : 'downgraded to Free'}`);
+    
+    showNotification(`User ${newStatus ? 'upgraded to Pro' : 'downgraded to Free'}`);
+    
   } catch (err) {
-    console.error('Failed to toggle pro status:', err);
-    showNotification(`Failed: ${err.message}`);
-    btn.textContent = currentlyPro ? '→ Free' : '→ Pro';
+    console.error('Toggle error:', err);
+    showNotification('Failed to update user');
+    btn.textContent = currentlyPro ? 'Remove Pro' : 'Make Pro';
   } finally {
     btn.disabled = false;
   }
 }
 
-// Format date for display
-function formatDate(dateString) {
+// AI Provider Change
+aiProviderSelect?.addEventListener('change', () => {
+  chrome.storage.sync.set({ aiProvider: aiProviderSelect.value }, () => {
+    showNotification(`Provider set to: ${aiProviderSelect.value}`);
+  });
+});
+
+// Logout
+logoutBtn?.addEventListener('click', async () => {
+  try {
+    await supabase.auth.signOut();
+    accountEmailEl.textContent = 'Not signed in';
+    adminTab.classList.add('hidden');
+    
+    // Switch to settings tab
+    document.querySelector('.tab[data-tab="settings"]').click();
+    
+    showNotification('Signed out');
+  } catch (err) {
+    showNotification('Failed to sign out');
+  }
+});
+
+// Settings Form
+settingsForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  chrome.storage.sync.set({ overlayPosition: overlayPositionSelect.value }, () => {
+    showNotification('Settings saved!');
+  });
+});
+
+// Helper Functions
+function formatNumber(num) {
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+  if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+  return num.toString();
+}
+
+function formatRelativeDate(dateString) {
+  if (!dateString) return 'Never';
+  
   const date = new Date(dateString);
   const now = new Date();
   const diffMs = now - date;
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) return 'Today';
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays} days ago`;
-
+  if (diffDays < 7) return `${diffDays}d ago`;
+  
   return date.toLocaleDateString();
 }
 
-// Escape HTML to prevent XSS
 function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
 }
 
-// Handle AI provider change
-aiProviderSelect?.addEventListener('change', () => {
-  const provider = aiProviderSelect.value;
-  chrome.storage.sync.set({ aiProvider: provider }, () => {
-    showNotification(`AI provider set to: ${provider}`);
-  });
-});
-
-// Handle logout from settings page
-settingsLogoutBtn?.addEventListener('click', async () => {
-  try {
-    await supabase.auth.signOut();
-    accountEmailEl.textContent = 'Not signed in';
-    foundersPanel.classList.remove('visible');
-    showNotification('Signed out successfully');
-  } catch (err) {
-    showNotification('Failed to sign out');
-  }
-});
-
-// Handle form submission
-settingsForm.addEventListener('submit', (e) => {
-  e.preventDefault();
-
-  const overlayPosition = overlayPositionSelect.value;
-
-  // Save settings
-  chrome.storage.sync.set(
-    {
-      overlayPosition: overlayPosition
-    },
-    () => {
-      showNotification('Settings saved successfully!');
-    }
-  );
-});
-
-// Show notification
 function showNotification(message) {
   const notificationText = notification.querySelector('.notification-text');
   notificationText.textContent = message;
-  notification.classList.add('show', 'success');
-
+  notification.classList.add('show');
+  
   setTimeout(() => {
     notification.classList.remove('show');
   }, 3000);

@@ -9,9 +9,16 @@
       --bg: #0f0f19;
       --panel: rgba(15, 15, 25, 0.72);
       --border: rgba(255, 255, 255, 0.08);
+      --border-strong: rgba(255, 255, 255, 0.15);
       --text: #eaeaf0;
       --text-dim: #a7a8b3;
+      --text-muted: #6b6b7b;
       --accent: #7c3aed;
+      --accent-dim: rgba(124, 58, 237, 0.15);
+      --cyan: #22d3ee;
+      --green: #22c55e;
+      --orange: #f97316;
+      --red: #ef4444;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -24,213 +31,706 @@
       color: var(--text);
     }
     .container {
-      width: min(960px, 100%);
+      width: min(1100px, 100%);
       margin: 0 auto;
-      border: 1px solid var(--border);
+    }
+    
+    /* Header */
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      padding: 0 8px;
+    }
+    .page-header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .page-header h1 {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .page-header-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+    }
+    .account-pill {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 16px;
       background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      backdrop-filter: blur(10px);
+    }
+    .account-email {
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+    .logout-btn {
+      padding: 6px 12px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-muted);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .logout-btn:hover {
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+    }
+
+    /* Tabs */
+    .tabs-container {
+      margin-bottom: 24px;
+    }
+    .tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 4px;
+      backdrop-filter: blur(10px);
+      width: fit-content;
+    }
+    .tab {
+      padding: 10px 20px;
+      background: transparent;
+      border: none;
+      border-radius: 8px;
+      color: var(--text-dim);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .tab:hover {
+      color: var(--text);
+      background: rgba(255,255,255,0.05);
+    }
+    .tab.active {
+      background: var(--accent);
+      color: white;
+    }
+    .tab.hidden {
+      display: none;
+    }
+
+    /* Tab Content */
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
       border-radius: 16px;
       backdrop-filter: blur(10px);
       overflow: hidden;
     }
-    .header {
-      padding: 28px 24px;
+    .card-header {
+      padding: 20px 24px;
       border-bottom: 1px solid var(--border);
-      background: linear-gradient(180deg, rgba(124,58,237,.16), rgba(124,58,237,0) 50%);
-      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
-    .header h1 { font-size: 26px; letter-spacing: -.01em; margin-bottom: 6px; }
-    .header p { color: var(--text-dim); }
-    .content { padding: 28px 24px; }
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .card-body {
+      padding: 24px;
+    }
 
-    .form-group { margin-bottom: 22px; }
-    label { display: block; font-weight: 700; margin-bottom: 8px; font-size: 13px; color: var(--text); }
+    /* Form Elements */
+    .form-group { margin-bottom: 20px; }
+    .form-group:last-child { margin-bottom: 0; }
+    label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 13px; color: var(--text); }
     select, input[type="password"], input[type="text"] {
       width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px;
       background: rgba(255,255,255,.04); color: var(--text);
       outline: none; font-size: 14px;
     }
-    .form-group option {
-      color: black;
-    }
+    select option { color: black; }
     select:focus, input:focus { border-color: rgba(124,58,237,.45); box-shadow: 0 0 0 3px rgba(124,58,237,.15) inset; }
     .help-text { margin-top: 8px; font-size: 12px; color: var(--text-dim); }
 
-    .provider-info {
-      margin-top: 14px; padding: 14px; border: 1px solid var(--border); border-radius: 12px;
-      background: rgba(255,255,255,.04);
+    .btn {
+      padding: 12px 20px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
     }
-    .provider-info h3 { margin: 0 0 8px; font-size: 14px; color: var(--text); }
-    .provider-info p { margin: 0 0 6px; color: var(--text-dim); font-size: 13px; }
-    .provider-info a { color: #22d3ee; text-decoration: none; }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #5b21b6);
+      color: white;
+      box-shadow: 0 8px 20px rgba(124,58,237,.3);
+    }
+    .btn-primary:hover { filter: brightness(1.05); transform: translateY(-1px); }
 
-    .api-key-group { position: relative; }
-    .toggle-visibility {
-      position: absolute; right: 10px; top: 36px; background: none; border: none; cursor: pointer; color: var(--text-dim); font-size: 18px;
+    /* Grid Layouts */
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; }
+    @media (max-width: 900px) {
+      .grid-2, .grid-3, .grid-4, .grid-5 { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 600px) {
+      .grid-2, .grid-3, .grid-4, .grid-5 { grid-template-columns: 1fr; }
     }
 
-    .save-btn {
-      width: 100%; padding: 14px; border-radius: 10px; border: none; cursor: pointer;
-      background: linear-gradient(135deg, var(--accent), #5b21b6); color: white; font-weight: 800;
-      box-shadow: 0 10px 30px rgba(124,58,237,.35);
+    /* Stats Cards */
+    .stat-card {
+      background: rgba(255,255,255,.03);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      transition: all 0.3s;
     }
-    .save-btn:hover { filter: brightness(1.05); }
+    .stat-card:hover {
+      border-color: var(--border-strong);
+      transform: translateY(-2px);
+    }
+    .stat-value {
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 4px;
+      font-variant-numeric: tabular-nums;
+    }
+    .stat-value.accent { color: var(--accent); }
+    .stat-value.cyan { color: var(--cyan); }
+    .stat-value.green { color: var(--green); }
+    .stat-value.orange { color: var(--orange); }
+    .stat-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .stat-change {
+      font-size: 11px;
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    .stat-change.up { color: var(--green); }
+    .stat-change.down { color: var(--red); }
 
+    /* Time Period Tabs */
+    .period-tabs {
+      display: flex;
+      gap: 4px;
+      background: rgba(255,255,255,.03);
+      border-radius: 8px;
+      padding: 3px;
+    }
+    .period-tab {
+      padding: 6px 14px;
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .period-tab:hover { color: var(--text-dim); }
+    .period-tab.active {
+      background: var(--accent-dim);
+      color: var(--accent);
+    }
+
+    /* Usage Chart */
+    .chart-container {
+      height: 200px;
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      padding: 20px 0;
+    }
+    .chart-bar-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .chart-bar {
+      width: 100%;
+      max-width: 40px;
+      background: linear-gradient(180deg, var(--accent), #5b21b6);
+      border-radius: 6px 6px 0 0;
+      transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+    .chart-bar:hover {
+      filter: brightness(1.2);
+    }
+    .chart-bar-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .chart-bar-value {
+      position: absolute;
+      top: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .chart-bar:hover .chart-bar-value {
+      opacity: 1;
+    }
+
+    /* Users Table */
+    .table-wrapper {
+      overflow-x: auto;
+    }
+    .users-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .users-table th, .users-table td {
+      padding: 14px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .users-table th {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      font-weight: 600;
+      background: rgba(255,255,255,.02);
+    }
+    .users-table td {
+      font-size: 13px;
+      color: var(--text);
+    }
+    .users-table tr:hover td {
+      background: rgba(255,255,255,.02);
+    }
+    .users-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 100px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .badge-pro { background: rgba(34,211,238,.15); color: var(--cyan); }
+    .badge-free { background: rgba(255,255,255,.08); color: var(--text-muted); }
+    .badge-active { background: rgba(34,197,94,.15); color: var(--green); }
+
+    /* Toggle Button */
+    .toggle-pro-btn {
+      padding: 6px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .toggle-pro-btn:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+    .toggle-pro-btn.is-pro {
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+    .toggle-pro-btn.is-pro:hover {
+      background: var(--red);
+      border-color: var(--red);
+      color: white;
+    }
+
+    /* User Details */
+    .user-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--accent-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .user-info {
+      display: flex;
+      flex-direction: column;
+    }
+    .user-email {
+      font-weight: 500;
+    }
+    .user-id {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: monospace;
+    }
+
+    /* Usage Bar */
+    .usage-bar-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .usage-bar {
+      flex: 1;
+      height: 6px;
+      background: rgba(255,255,255,.08);
+      border-radius: 3px;
+      overflow: hidden;
+      max-width: 100px;
+    }
+    .usage-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--cyan));
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+    .usage-bar-fill.high {
+      background: linear-gradient(90deg, var(--orange), var(--red));
+    }
+
+    /* Info Section */
+    .info-section {
+      background: rgba(255,255,255,.03);
+      border: 1px solid var(--border);
+      padding: 20px;
+      border-radius: 12px;
+    }
+    .info-section h3 {
+      margin: 0 0 12px;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .info-section ul {
+      margin: 0;
+      padding-left: 20px;
+      color: var(--text-dim);
+      font-size: 13px;
+      line-height: 1.8;
+    }
+    .info-section a {
+      color: var(--cyan);
+      text-decoration: none;
+    }
+
+    /* Notification */
     .notification {
-      position: fixed; top: 18px; right: 18px; display: none; align-items: center; gap: 10px;
-      padding: 12px 16px; border-radius: 10px; background: var(--panel); border: 1px solid var(--border); backdrop-filter: blur(10px);
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 20px;
+      border-radius: 12px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(10px);
+      z-index: 1000;
+      animation: slideIn 0.3s ease;
+    }
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
     }
     .notification.show { display: inline-flex; }
-    .notification-text { color: var(--text); font-size: 13px; }
+    .notification-text { color: var(--text); font-size: 13px; font-weight: 500; }
 
-    .divider { height: 1px; background: var(--border); margin: 22px 0; }
-    .info-section { background: rgba(255,255,255,.04); border: 1px solid var(--border); padding: 16px; border-radius: 12px; }
-    .info-section h3 { margin: 0 0 8px; font-size: 16px; }
-    .info-section ul { margin: 0; padding-left: 16px; color: var(--text-dim); }
+    /* Divider */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 24px 0;
+    }
 
-    /* Account section */
-    .account-section { margin-bottom: 22px; padding: 16px; background: rgba(255,255,255,.04); border: 1px solid var(--border); border-radius: 12px; }
-    .account-section h3 { margin: 0 0 12px; font-size: 14px; color: var(--text); }
-    .account-email { font-size: 14px; color: var(--text-dim); margin-bottom: 12px; }
-    .logout-btn-settings { padding: 8px 16px; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: var(--text-dim); cursor: pointer; font-size: 12px; }
-    .logout-btn-settings:hover { background: rgba(255,255,255,.04); color: var(--text); }
+    /* Section Spacing */
+    .section-spacing {
+      margin-bottom: 24px;
+    }
 
-    /* Founders Panel */
-    .founders-panel { display: none; margin-top: 28px; padding-top: 28px; border-top: 2px solid var(--accent); }
-    .founders-panel.visible { display: block; }
-    .founders-panel h2 { font-size: 18px; margin-bottom: 20px; color: var(--accent); display: flex; align-items: center; gap: 10px; }
+    /* Search */
+    .search-box {
+      position: relative;
+    }
+    .search-box input {
+      padding-left: 40px;
+    }
+    .search-box svg {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+    }
 
-    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 22px; }
-    .stat-card { background: rgba(255,255,255,.04); border: 1px solid var(--border); border-radius: 12px; padding: 16px; text-align: center; }
-    .stat-card .stat-value { font-size: 28px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
-    .stat-card .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); }
-
-    .users-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-    .users-table th, .users-table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); }
-    .users-table th { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); font-weight: 600; }
-    .users-table td { font-size: 13px; color: var(--text); }
-    .users-table tr:hover { background: rgba(255,255,255,.02); }
-
-    .badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
-    .badge-pro { background: rgba(34,211,238,.15); color: #22d3ee; }
-    .badge-free { background: rgba(255,255,255,.08); color: var(--text-dim); }
-
-    .toggle-pro-btn { padding: 6px 12px; border: 1px solid var(--border); border-radius: 6px; background: transparent; color: var(--text-dim); cursor: pointer; font-size: 11px; transition: all 0.2s; }
-    .toggle-pro-btn:hover { background: var(--accent); border-color: var(--accent); color: white; }
-    .toggle-pro-btn.is-pro { border-color: #22d3ee; color: #22d3ee; }
-    .toggle-pro-btn.is-pro:hover { background: rgba(220,60,60,.8); border-color: transparent; color: white; }
+    /* Loading */
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-muted);
+    }
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="header">
-      <h1 style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-        <img src="icons/icon128.png" style="width: 32px; height: 32px; border-radius: 6px;"> 
-        Oddvision Settings
-      </h1>
-      <p>Configure your overlay preferences</p>
-    </div>
-
-    <div class="content">
-      <!-- Account Section -->
-      <div class="account-section">
-        <h3>👤 Account</h3>
-        <div class="account-email" id="account-email">Loading...</div>
-        <button class="logout-btn-settings" id="settings-logout-btn">Sign Out</button>
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-header-left">
+        <img src="icons/icon128.png" class="page-header-logo" alt="Oddvision">
+        <h1>Settings</h1>
       </div>
-
-      <form id="settings-form">
-        <div class="form-group">
-          <label for="overlay-position">Overlay Position</label>
-          <select id="overlay-position" name="overlay-position">
-            <option value="top-right">Top Right</option>
-            <option value="top-left">Top Left</option>
-            <option value="bottom-right">Bottom Right</option>
-            <option value="bottom-left">Bottom Left</option>
-          </select>
-          <div class="help-text">Choose where the AI response overlay appears on the page</div>
-        </div>
-
-        <button type="submit" class="save-btn">💾 Save Settings</button>
-      </form>
-
-      <div class="divider"></div>
-
-      <div class="info-section">
-        <h3>📚 Getting Started</h3>
-        <ul>
-            <li>API credentials are built in by the extension—no setup required.</li>
-          <li>Enable the extension from the popup</li>
-          <li>Use Alt+1 (capture), Alt+2 (analyze), Alt+3 (view overlay) on any webpage</li>
-          <li>Adjust overlay position below if needed</li>
-        </ul>
-      </div>
-    </div>
-    
-    <div class="content">
-      <div class="info-section" style="margin: 16px;">
-        <h3>🌐 Website</h3>
-        <p>Visit <a href="https://oddvision.xyz" target="_blank" rel="noopener noreferrer">oddvision.xyz</a> for more information and updates.</p>
+      <div class="account-pill">
+        <span class="account-email" id="account-email">Loading...</span>
+        <button class="logout-btn" id="logout-btn">Sign Out</button>
       </div>
     </div>
 
-    <!-- Founders Panel (hidden by default) -->
-    <div class="content founders-panel" id="founders-panel">
-      <h2>🔮 Founders Panel</h2>
+    <!-- Tabs Navigation -->
+    <div class="tabs-container">
+      <div class="tabs">
+        <button class="tab active" data-tab="settings">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+          Settings
+        </button>
+        <button class="tab hidden" data-tab="admin" id="admin-tab">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          Admin Panel
+        </button>
+      </div>
+    </div>
 
-      <!-- AI Provider Selection -->
-      <div class="form-group">
-        <label for="ai-provider">AI Provider</label>
-        <select id="ai-provider">
-          <option value="default">Default (Auto-failover)</option>
-          <option value="groq">Groq Only</option>
-          <option value="openrouter">OpenRouter Only</option>
-        </select>
-        <div class="help-text">Select which AI provider to use for requests</div>
+    <!-- Settings Tab -->
+    <div class="tab-content active" id="tab-settings">
+      <div class="grid-2 section-spacing">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">⚙️ Preferences</span>
+          </div>
+          <div class="card-body">
+            <form id="settings-form">
+              <div class="form-group">
+                <label for="overlay-position">Overlay Position</label>
+                <select id="overlay-position" name="overlay-position">
+                  <option value="top-right">Top Right</option>
+                  <option value="top-left">Top Left</option>
+                  <option value="bottom-right">Bottom Right</option>
+                  <option value="bottom-left">Bottom Left</option>
+                </select>
+                <div class="help-text">Where the AI response appears on the page</div>
+              </div>
+              <button type="submit" class="btn btn-primary" style="width: 100%;">
+                💾 Save Settings
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📚 Quick Start</span>
+          </div>
+          <div class="card-body">
+            <div class="info-section" style="border: none; padding: 0; background: none;">
+              <ul>
+                <li>API credentials are built-in — no setup required</li>
+                <li><strong>Alt+1</strong> — Capture page content</li>
+                <li><strong>Alt+2</strong> — Analyze with AI</li>
+                <li><strong>Alt+3</strong> — Toggle overlay visibility</li>
+              </ul>
+            </div>
+            <div class="divider"></div>
+            <p style="font-size: 13px; color: var(--text-dim);">
+              Visit <a href="https://oddvision.xyz" target="_blank" style="color: var(--cyan);">oddvision.xyz</a> for more info
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Admin Tab -->
+    <div class="tab-content" id="tab-admin">
+      <!-- Overview Stats -->
+      <div class="card section-spacing">
+        <div class="card-header">
+          <span class="card-title">📊 Overview</span>
+          <div class="period-tabs" id="period-tabs">
+            <button class="period-tab active" data-period="today">Today</button>
+            <button class="period-tab" data-period="week">This Week</button>
+            <button class="period-tab" data-period="month">This Month</button>
+            <button class="period-tab" data-period="all">All Time</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="grid-5" id="stats-grid">
+            <div class="stat-card">
+              <div class="stat-value accent" id="stat-total-users">-</div>
+              <div class="stat-label">Total Users</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value cyan" id="stat-pro-users">-</div>
+              <div class="stat-label">Pro Users</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value green" id="stat-active-today">-</div>
+              <div class="stat-label">Active Today</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value orange" id="stat-prompts-period">-</div>
+              <div class="stat-label">Prompts</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="stat-avg-prompts">-</div>
+              <div class="stat-label">Avg/User</div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="divider"></div>
-
-      <!-- Analytics Stats -->
-      <h3 style="margin-bottom: 16px; font-size: 14px;">📊 User Analytics</h3>
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-value" id="stat-total-users">-</div>
-          <div class="stat-label">Total Users</div>
+      <!-- Usage Chart -->
+      <div class="card section-spacing">
+        <div class="card-header">
+          <span class="card-title">📈 Usage Trend (Last 7 Days)</span>
         </div>
-        <div class="stat-card">
-          <div class="stat-value" id="stat-pro-users">-</div>
-          <div class="stat-label">Pro Users</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value" id="stat-total-prompts">-</div>
-          <div class="stat-label">Prompts Used</div>
+        <div class="card-body">
+          <div class="chart-container" id="usage-chart">
+            <div class="loading">
+              <div class="spinner"></div>
+              Loading chart...
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="divider"></div>
+      <!-- Admin Controls -->
+      <div class="card section-spacing">
+        <div class="card-header">
+          <span class="card-title">🔧 Admin Controls</span>
+        </div>
+        <div class="card-body">
+          <div class="form-group">
+            <label for="ai-provider">AI Provider</label>
+            <select id="ai-provider">
+              <option value="default">Default (Auto-failover)</option>
+              <option value="groq">Groq Only</option>
+              <option value="openrouter">OpenRouter Only</option>
+            </select>
+            <div class="help-text">Select which AI provider to use for all requests</div>
+          </div>
+        </div>
+      </div>
 
       <!-- Users Table -->
-      <h3 style="margin-bottom: 8px; font-size: 14px;">👥 All Users</h3>
-      <p style="font-size: 11px; color: var(--text-dim); margin-bottom: 12px;">All registered users from Supabase Auth</p>
-      <table class="users-table">
-        <thead>
-          <tr>
-            <th>Email</th>
-            <th>Prompts</th>
-            <th>Status</th>
-            <th>Last Active</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody id="users-table-body">
-          <tr><td colspan="5" style="text-align: center; color: var(--text-dim);">Loading...</td></tr>
-        </tbody>
-      </table>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">👥 All Users</span>
+          <div class="search-box">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="text" id="user-search" placeholder="Search users..." style="width: 200px; padding-left: 36px;">
+          </div>
+        </div>
+        <div class="card-body" style="padding: 0;">
+          <div class="table-wrapper">
+            <table class="users-table">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Status</th>
+                  <th>Prompts (Week)</th>
+                  <th>Prompts (Total)</th>
+                  <th>Last Active</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="users-table-body">
+                <tr>
+                  <td colspan="6">
+                    <div class="loading">
+                      <div class="spinner"></div>
+                      Loading users...
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
+  <!-- Notification -->
   <div id="notification" class="notification">
-    <span class="notification-text">Settings saved successfully!</span>
+    <span class="notification-text">Settings saved!</span>
   </div>
 
   <script src="secrets.js"></script>
@@ -239,4 +739,3 @@
   <script src="options.js"></script>
 </body>
 </html>
-

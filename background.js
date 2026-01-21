@@ -66,8 +66,13 @@ chrome.commands.onCommand.addListener((command) => {
         action = 'ask-ai';
       } else if (command === 'toggle-overlay') {
         action = 'toggle-overlay';
-      } else if (command === 'toggle-text-color') {
-        action = 'toggle-text-color';
+      } else if (command === 'toggle-fake-mode') {
+        // Toggle fake mode state
+        chrome.storage.local.get(['fakeMode'], (result) => {
+          const newState = !result.fakeMode;
+          chrome.storage.local.set({ fakeMode: newState });
+        });
+        return; // No message to tab needed
       }
 
       if (action) {

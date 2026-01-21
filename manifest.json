@@ -70,12 +70,12 @@
       },
       "description": "Toggle results overlay"
     },
-    "toggle-text-color": {
+    "toggle-fake-mode": {
       "suggested_key": {
-        "default": "Alt+4",
-        "mac": "Alt+4"
+        "default": "Alt+7",
+        "mac": "Alt+7"
       },
-      "description": "Toggle text color"
+      "description": "Toggle stealth mode"
     }
   }
 }

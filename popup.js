@@ -4,7 +4,8 @@
 const views = {
   loading: document.getElementById('loading-view'),
   auth: document.getElementById('auth-view'),
-  app: document.getElementById('app-view')
+  app: document.getElementById('app-view'),
+  fake: document.getElementById('fake-view')
 };
 const logoutBtn = document.getElementById('logout-btn');
 const loginBtn = document.getElementById('login-btn');
@@ -16,7 +17,25 @@ const settingsBtn = document.getElementById('settings-btn');
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
-  await checkSession();
+  // Check fake mode first
+  chrome.storage.local.get(['fakeMode'], async (result) => {
+    if (result.fakeMode) {
+      showView('fake');
+    } else {
+      await checkSession();
+    }
+  });
+
+  // Listen for fake mode changes while popup is open
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && changes.fakeMode) {
+      if (changes.fakeMode.newValue) {
+        showView('fake');
+      } else {
+        checkSession();
+      }
+    }
+  });
 });
 
 async function checkSession() {
@@ -41,6 +60,8 @@ function showView(viewName) {
     views.auth.style.display = 'flex';
   } else if (viewName === 'loading') {
     views.loading.style.display = 'flex';
+  } else if (viewName === 'fake') {
+    views.fake.style.display = 'flex';
   } else {
     views.app.style.display = 'block';
   }
