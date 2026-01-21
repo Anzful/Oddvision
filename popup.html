@@ -90,13 +90,11 @@
       box-shadow: 0 10px 24px rgba(124,58,237,.35);
     }
     .settings-btn:hover { filter: brightness(1.05); }
-    
-    #user-email {
-        font-size: 11px; color: var(--text-dim); margin-top: 4px;
-    }
     #logout-btn {
-        background: transparent; border: 1px solid var(--border); color: var(--text-dim); font-size: 11px; padding: 4px 8px; border-radius: 4px; cursor: pointer; margin-top: 8px;
+        width: 100%; padding: 10px; margin-top: 10px; border: 1px solid var(--border); border-radius: 10px; cursor: pointer;
+        background: transparent; color: var(--text-dim); font-size: 12px;
     }
+    #logout-btn:hover { background: rgba(255,255,255,.04); color: var(--text); }
   </style>
 </head>
 <body>
@@ -107,10 +105,6 @@
         Oddvision
       </h1>
       <p style="opacity:.75">Stealth overlay controls</p>
-      <div id="user-info" style="display:none;">
-          <div id="user-email"></div>
-          <button id="logout-btn">Sign Out</button>
-      </div>
     </div>
 
     <!-- Loading View -->
@@ -155,10 +149,10 @@
         <p><strong>2.</strong> <span class="shortcut">Alt+2</span> - Analyze</p>
         <p><strong>3.</strong> <span class="shortcut">Alt+3</span> - View overlay</p>
         <p><strong>4.</strong> <span class="shortcut">Alt+4</span> - Text color</p>
-        <p style="margin-top: 12px; font-size: 11px; color: #999;">💡 Automatic failover: Groq → OpenRouter</p>
         </div>
 
         <button class="settings-btn" id="settings-btn">⚙️ Extension Settings</button>
+        <button id="logout-btn">Sign Out</button>
     </div>
   </div>
 

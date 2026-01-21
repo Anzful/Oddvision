@@ -6,8 +6,6 @@ const views = {
   auth: document.getElementById('auth-view'),
   app: document.getElementById('app-view')
 };
-const userInfo = document.getElementById('user-info');
-const userEmail = document.getElementById('user-email');
 const logoutBtn = document.getElementById('logout-btn');
 const loginBtn = document.getElementById('login-btn');
 
@@ -49,10 +47,8 @@ function showView(viewName) {
 }
 
 function handleSession(session) {
-  userEmail.textContent = session.user.email;
-  userInfo.style.display = 'block';
   showView('app');
-  initAppLogic(); 
+  initAppLogic();
   fetchUsage(session.user);
 }
 
@@ -106,7 +102,7 @@ async function fetchUsage(user) {
         }
 
         if (isPro) {
-            usageCountEl.textContent = 'Unlimited';
+            usageCountEl.textContent = 'Pro';
             usageCountEl.style.color = '#22d3ee'; // Cyan
             usageResetEl.textContent = 'Pro Plan Active';
         } else {
@@ -201,7 +197,6 @@ loginBtn.addEventListener('click', async () => {
 // Logout Flow
 logoutBtn.addEventListener('click', async () => {
   await supabase.auth.signOut();
-  userInfo.style.display = 'none';
   showView('auth');
 });
 

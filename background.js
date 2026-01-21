@@ -217,11 +217,29 @@ async function processQueue() {
 // Automatic failover: Try providers in order until one works
 // Uses static, preconfigured API keys from secrets.js (OddvisionConfig)
 async function callAIWithFailover(prompt) {
-  // Define providers in priority order, using built-in credentials
-  const providers = [
+  // Define all providers in priority order, using built-in credentials
+  const allProviders = [
     { name: 'groq', key: OddvisionConfig.apiKey, fn: callGroq },
     { name: 'openrouter', key: OddvisionConfig.openrouterKey, fn: callOpenRouter }
   ];
+
+  // Check if admin has set a specific provider preference
+  let providers = allProviders;
+  try {
+    const result = await new Promise(resolve => {
+      chrome.storage.sync.get(['aiProvider'], resolve);
+    });
+    const aiProvider = result.aiProvider || 'default';
+
+    if (aiProvider === 'groq') {
+      providers = allProviders.filter(p => p.name === 'groq');
+    } else if (aiProvider === 'openrouter') {
+      providers = allProviders.filter(p => p.name === 'openrouter');
+    }
+    // 'default' uses all providers with failover
+  } catch (e) {
+    // If storage read fails, use default behavior
+  }
 
   let lastError = null;
 

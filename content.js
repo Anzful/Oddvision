@@ -309,7 +309,7 @@ function createOverlay() {
   
   // Load saved text color preference
   chrome.storage.sync.get(['textColor'], (result) => {
-    const textColor = result.textColor || 'white';
+    const textColor = result.textColor || 'black';
     applyTextColor(textColor);
   });
   
@@ -330,17 +330,21 @@ function showOverlay() {
   if (!overlayElement) {
     createOverlay();
   }
-  
-  // Ensure position class is applied
-  chrome.storage.sync.get(['overlayPosition'], (result) => {
+
+  // Load both position and text color from storage and apply them together
+  chrome.storage.sync.get(['overlayPosition', 'textColor'], (result) => {
     const position = result.overlayPosition || 'top-right';
+    const textColor = result.textColor || 'black';
+
+    // Reset classes and apply both position and text color
     overlayElement.className = '';
     overlayElement.classList.add('oddvision-position-' + position);
+    applyTextColor(textColor);
   });
-  
+
   overlayElement.style.display = 'flex';
   overlayVisible = true;
-  
+
   // If we have AI response, display it
   if (lastAIResponse) {
     displayAIResponse(lastAIResponse);
@@ -406,7 +410,7 @@ function copyResponse() {
 // Toggle text color between white and black
 function toggleTextColor() {
   chrome.storage.sync.get(['textColor'], (result) => {
-    const currentColor = result.textColor || 'white';
+    const currentColor = result.textColor || 'black';
     const newColor = currentColor === 'white' ? 'black' : 'white';
     
     chrome.storage.sync.set({ textColor: newColor }, () => {

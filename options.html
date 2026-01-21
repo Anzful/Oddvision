@@ -86,6 +86,38 @@
     .info-section { background: rgba(255,255,255,.04); border: 1px solid var(--border); padding: 16px; border-radius: 12px; }
     .info-section h3 { margin: 0 0 8px; font-size: 16px; }
     .info-section ul { margin: 0; padding-left: 16px; color: var(--text-dim); }
+
+    /* Account section */
+    .account-section { margin-bottom: 22px; padding: 16px; background: rgba(255,255,255,.04); border: 1px solid var(--border); border-radius: 12px; }
+    .account-section h3 { margin: 0 0 12px; font-size: 14px; color: var(--text); }
+    .account-email { font-size: 14px; color: var(--text-dim); margin-bottom: 12px; }
+    .logout-btn-settings { padding: 8px 16px; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: var(--text-dim); cursor: pointer; font-size: 12px; }
+    .logout-btn-settings:hover { background: rgba(255,255,255,.04); color: var(--text); }
+
+    /* Founders Panel */
+    .founders-panel { display: none; margin-top: 28px; padding-top: 28px; border-top: 2px solid var(--accent); }
+    .founders-panel.visible { display: block; }
+    .founders-panel h2 { font-size: 18px; margin-bottom: 20px; color: var(--accent); display: flex; align-items: center; gap: 10px; }
+
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 22px; }
+    .stat-card { background: rgba(255,255,255,.04); border: 1px solid var(--border); border-radius: 12px; padding: 16px; text-align: center; }
+    .stat-card .stat-value { font-size: 28px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+    .stat-card .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); }
+
+    .users-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    .users-table th, .users-table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); }
+    .users-table th { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); font-weight: 600; }
+    .users-table td { font-size: 13px; color: var(--text); }
+    .users-table tr:hover { background: rgba(255,255,255,.02); }
+
+    .badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+    .badge-pro { background: rgba(34,211,238,.15); color: #22d3ee; }
+    .badge-free { background: rgba(255,255,255,.08); color: var(--text-dim); }
+
+    .toggle-pro-btn { padding: 6px 12px; border: 1px solid var(--border); border-radius: 6px; background: transparent; color: var(--text-dim); cursor: pointer; font-size: 11px; transition: all 0.2s; }
+    .toggle-pro-btn:hover { background: var(--accent); border-color: var(--accent); color: white; }
+    .toggle-pro-btn.is-pro { border-color: #22d3ee; color: #22d3ee; }
+    .toggle-pro-btn.is-pro:hover { background: rgba(220,60,60,.8); border-color: transparent; color: white; }
   </style>
 </head>
 <body>
@@ -99,6 +131,13 @@
     </div>
 
     <div class="content">
+      <!-- Account Section -->
+      <div class="account-section">
+        <h3>👤 Account</h3>
+        <div class="account-email" id="account-email">Loading...</div>
+        <button class="logout-btn-settings" id="settings-logout-btn">Sign Out</button>
+      </div>
+
       <form id="settings-form">
         <div class="form-group">
           <label for="overlay-position">Overlay Position</label>
@@ -120,7 +159,6 @@
         <h3>📚 Getting Started</h3>
         <ul>
             <li>API credentials are built in by the extension—no setup required.</li>
-            <li>Automatic failover: Groq → OpenRouter (free tier) using shared extension credentials</li>
           <li>Enable the extension from the popup</li>
           <li>Use Alt+1 (capture), Alt+2 (analyze), Alt+3 (view overlay) on any webpage</li>
           <li>Adjust overlay position below if needed</li>
@@ -134,12 +172,70 @@
         <p>Visit <a href="https://oddvision.xyz" target="_blank" rel="noopener noreferrer">oddvision.xyz</a> for more information and updates.</p>
       </div>
     </div>
+
+    <!-- Founders Panel (hidden by default) -->
+    <div class="content founders-panel" id="founders-panel">
+      <h2>🔮 Founders Panel</h2>
+
+      <!-- AI Provider Selection -->
+      <div class="form-group">
+        <label for="ai-provider">AI Provider</label>
+        <select id="ai-provider">
+          <option value="default">Default (Auto-failover)</option>
+          <option value="groq">Groq Only</option>
+          <option value="openrouter">OpenRouter Only</option>
+        </select>
+        <div class="help-text">Select which AI provider to use for requests</div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Analytics Stats -->
+      <h3 style="margin-bottom: 16px; font-size: 14px;">📊 User Analytics</h3>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="stat-total-users">-</div>
+          <div class="stat-label">Total Users</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-pro-users">-</div>
+          <div class="stat-label">Pro Users</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-total-prompts">-</div>
+          <div class="stat-label">Prompts Used</div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Users Table -->
+      <h3 style="margin-bottom: 8px; font-size: 14px;">👥 All Users</h3>
+      <p style="font-size: 11px; color: var(--text-dim); margin-bottom: 12px;">All registered users from Supabase Auth</p>
+      <table class="users-table">
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>Prompts</th>
+            <th>Status</th>
+            <th>Last Active</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="users-table-body">
+          <tr><td colspan="5" style="text-align: center; color: var(--text-dim);">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <div id="notification" class="notification">
     <span class="notification-text">Settings saved successfully!</span>
   </div>
 
+  <script src="secrets.js"></script>
+  <script src="lib/supabase.js"></script>
+  <script src="lib/supabase-setup.js"></script>
   <script src="options.js"></script>
 </body>
 </html>
