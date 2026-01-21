@@ -125,9 +125,9 @@ export default function Privacy() {
         <section className="privacy-section">
           <h2>Contact</h2>
           <p>
-            Questions about this policy? Open an issue on our{" "}
-            <a href="https://github.com/anzful/Oddvision" target="_blank" rel="noopener noreferrer">
-              GitHub repository
+            Questions about this policy? Contact us at{" "}
+            <a href="mailto:oddvisionai@gmail.com">
+              oddvisionai@gmail.com
             </a>.
           </p>
         </section>
