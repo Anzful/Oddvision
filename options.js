@@ -308,7 +308,7 @@ async function loadUsersTable() {
 function renderUsersTable(users) {
   const tbody = document.getElementById('users-table-body');
   const limit = 3; // Free user limit
-  
+
   tbody.innerHTML = users.map(user => {
     const isPro = user.is_pro || false;
     const email = user.email || 'Unknown';
@@ -317,11 +317,16 @@ function renderUsersTable(users) {
     const lastActive = formatRelativeDate(user.last_reset_at);
     const initial = email.charAt(0).toUpperCase();
     const userId = user.user_id;
-    
+
+    // Pro expiry info
+    const proExpiresAt = user.pro_expires_at;
+    const proGrantedBy = user.pro_granted_by;
+    const expiryInfo = getExpiryInfo(isPro, proExpiresAt, proGrantedBy);
+
     // Usage percentage for bar
     const usagePercent = isPro ? 30 : Math.min((weekPrompts / limit) * 100, 100);
     const isHighUsage = !isPro && weekPrompts >= limit;
-    
+
     return `
       <tr data-user-id="${userId}">
         <td>
@@ -334,6 +339,7 @@ function renderUsersTable(users) {
           </div>
         </td>
         <td><span class="badge ${isPro ? 'badge-pro' : 'badge-free'}">${isPro ? 'Pro' : 'Free'}</span></td>
+        <td><span class="expiry-info ${expiryInfo.class}">${expiryInfo.text}</span></td>
         <td>
           <div class="usage-bar-container">
             <span>${weekPrompts}${isPro ? '' : `/${limit}`}</span>
@@ -345,18 +351,50 @@ function renderUsersTable(users) {
         <td>${formatNumber(totalPrompts)}</td>
         <td>${lastActive}</td>
         <td>
-          <button class="toggle-pro-btn ${isPro ? 'is-pro' : ''}" data-user-id="${userId}" data-is-pro="${isPro}">
+          <button class="toggle-pro-btn ${isPro ? 'is-pro' : ''}" data-user-id="${userId}" data-is-pro="${isPro}" data-expires="${proExpiresAt || ''}" data-granted-by="${proGrantedBy || ''}">
             ${isPro ? 'Remove Pro' : 'Make Pro'}
           </button>
         </td>
       </tr>
     `;
   }).join('');
-  
+
   // Add event listeners
   tbody.querySelectorAll('.toggle-pro-btn').forEach(btn => {
     btn.addEventListener('click', handleProToggle);
   });
+}
+
+// Get expiry info for display
+function getExpiryInfo(isPro, expiresAt, grantedBy) {
+  if (!isPro) {
+    return { text: '—', class: '' };
+  }
+
+  // Founder-granted (never expires)
+  if (grantedBy) {
+    return { text: 'Never (Founder)', class: 'founder' };
+  }
+
+  // No expiry set (legacy or unlimited)
+  if (!expiresAt) {
+    return { text: 'Never', class: 'founder' };
+  }
+
+  // Check expiry
+  const expiry = new Date(expiresAt);
+  const now = new Date();
+  const diffDays = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) {
+    return { text: 'Expired', class: 'expired' };
+  }
+
+  if (diffDays <= 7) {
+    return { text: `${diffDays}d left`, class: 'warning' };
+  }
+
+  return { text: `${diffDays}d left`, class: '' };
 }
 
 // Handle Pro Status Toggle
@@ -365,43 +403,65 @@ async function handleProToggle(e) {
   const userId = btn.dataset.userId;
   const currentlyPro = btn.dataset.isPro === 'true';
   const newStatus = !currentlyPro;
-  
+
+  // If granting pro, ask about expiry
+  let expiresInDays = null;
+  if (newStatus) {
+    const choice = prompt(
+      'Grant Pro Status:\n\n' +
+      'Enter number of days for paid pro (e.g., 30)\n' +
+      'Or leave empty for founder-granted (never expires)',
+      ''
+    );
+
+    if (choice === null) {
+      return; // User cancelled
+    }
+
+    if (choice.trim() !== '') {
+      const days = parseInt(choice.trim(), 10);
+      if (isNaN(days) || days <= 0) {
+        showNotification('Invalid number of days');
+        return;
+      }
+      expiresInDays = days;
+    }
+    // null = founder-granted (never expires)
+  }
+
   btn.disabled = true;
   btn.textContent = '...';
-  
+
   try {
-    // Try RPC
+    // Try RPC with expiry parameter
     const { error } = await supabase.rpc('toggle_user_pro_status', {
       target_user_id: userId,
-      new_pro_status: newStatus
+      new_pro_status: newStatus,
+      expires_in_days: expiresInDays
     });
-    
+
     if (error) {
-      // Fallback to direct update
+      console.error('RPC error:', error);
+      // Fallback to direct update (without expiry support)
       const { error: updateError } = await supabase
         .from('user_usage')
         .update({ is_pro: newStatus })
         .eq('user_id', userId);
-      
+
       if (updateError) throw updateError;
     }
-    
-    // Update UI
-    btn.dataset.isPro = newStatus.toString();
-    btn.textContent = newStatus ? 'Remove Pro' : 'Make Pro';
-    btn.classList.toggle('is-pro', newStatus);
-    
-    // Update badge
-    const row = btn.closest('tr');
-    const badge = row.querySelector('.badge');
-    badge.className = `badge ${newStatus ? 'badge-pro' : 'badge-free'}`;
-    badge.textContent = newStatus ? 'Pro' : 'Free';
-    
+
+    // Refresh the entire table to get updated expiry info
+    await loadUsersTable();
+
     // Refresh analytics
     await loadAnalytics();
-    
-    showNotification(`User ${newStatus ? 'upgraded to Pro' : 'downgraded to Free'}`);
-    
+
+    const msg = newStatus
+      ? (expiresInDays ? `Granted ${expiresInDays}-day Pro` : 'Granted permanent Pro')
+      : 'Removed Pro status';
+    showNotification(msg);
+
   } catch (err) {
     console.error('Toggle error:', err);
     showNotification('Failed to update user');

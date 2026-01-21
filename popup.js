@@ -80,8 +80,6 @@ async function fetchUsage(user) {
     if (!user) return;
 
     try {
-        // We use 'maybeSingle' instead of 'single' to handle no rows gracefully if preferred,
-        // but checking error code is also fine.
         const { data, error } = await supabase
             .from('user_usage')
             .select('*')
@@ -89,7 +87,6 @@ async function fetchUsage(user) {
             .single();
 
         if (error && error.code !== 'PGRST116') {
-            // console.error('Error fetching usage:', error);
             usageCountEl.textContent = 'Error';
             return;
         }
@@ -101,23 +98,30 @@ async function fetchUsage(user) {
 
         if (data) {
             isPro = data.is_pro;
-            
+
+            // Check pro expiry
+            if (isPro && data.pro_expires_at) {
+                const expiryDate = new Date(data.pro_expires_at);
+                const now = new Date();
+                if (expiryDate <= now) {
+                    // Pro expired
+                    isPro = false;
+                }
+            }
+
             const lastReset = new Date(data.last_reset_at);
             const now = new Date();
-            // Calculate difference in milliseconds
             const diffTime = now - lastReset;
-            // Convert to days
             const diffDays = diffTime / (1000 * 60 * 60 * 24);
-            
+
             if (diffDays >= 7) {
-                count = 0; // Visual reset (actual reset happens on next use)
+                count = 0;
                 daysLeft = 7;
             } else {
                 count = data.prompts_count;
                 daysLeft = Math.ceil(7 - diffDays);
             }
         } else {
-            // No record found => New user who hasn't used it yet
             count = 0;
             daysLeft = 7;
         }
@@ -125,22 +129,39 @@ async function fetchUsage(user) {
         if (isPro) {
             usageCountEl.textContent = 'Pro';
             usageCountEl.style.color = '#22d3ee'; // Cyan
-            usageResetEl.textContent = 'Pro Plan Active';
+
+            // Show expiry info if applicable
+            if (data.pro_expires_at) {
+                const expiryDate = new Date(data.pro_expires_at);
+                const now = new Date();
+                const daysRemaining = Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24));
+
+                if (daysRemaining <= 7) {
+                    usageResetEl.textContent = `Expires in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''}`;
+                    usageResetEl.style.color = '#f97316'; // Orange warning
+                } else {
+                    usageResetEl.textContent = `Pro • ${daysRemaining} days left`;
+                    usageResetEl.style.color = '';
+                }
+            } else {
+                usageResetEl.textContent = 'Pro Plan Active';
+                usageResetEl.style.color = '';
+            }
         } else {
-            // Clamp count to limit for display if not pro
             const displayCount = count > limit ? limit : count;
             usageCountEl.textContent = `${displayCount} / ${limit}`;
             usageResetEl.textContent = `Resets in ~${daysLeft} day${daysLeft !== 1 ? 's' : ''}`;
-            
+            usageResetEl.style.color = '';
+
             if (count >= limit) {
                 usageCountEl.style.color = '#ef4444'; // Red
             } else {
-                 usageCountEl.style.color = '#eaeaf0'; // var(--text)
+                usageCountEl.style.color = '#eaeaf0';
             }
         }
-        
+
     } catch (err) {
-        // console.error('Usage fetch error:', err);
+        // Silent fail
     }
 }
 
