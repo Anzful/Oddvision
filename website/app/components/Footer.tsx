@@ -19,6 +19,7 @@ export default function Footer() {
           </div>
           <div className="footer-links">
             <Link href="/privacy" className="footer-link">Privacy</Link>
+            <a href="mailto:oddvisionai@gmail.com" className="footer-link">Support</a>
             <span className="footer-tagline">Stealth AI for the modern web</span>
           </div>
         </div>

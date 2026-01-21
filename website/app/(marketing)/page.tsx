@@ -9,7 +9,6 @@ import {
   IconBrain,
   IconLayoutBottombar,
   IconArrowRight,
-  IconTerminal2,
   IconRocket,
   IconCheck,
   IconShield,
@@ -337,53 +336,6 @@ export default function Home() {
       {/* Pricing */}
       <PricingSection />
 
-      {/* Providers */}
-      <section id="providers" className="section section-dark">
-        <div className="container">
-          <Reveal>
-            <div className="section-header">
-              <span className="section-label">Infrastructure</span>
-              <h2 className="section-title">Powered by the fastest AI</h2>
-              <p className="section-subtitle">
-                Multiple providers for maximum reliability and speed.
-              </p>
-            </div>
-          </Reveal>
-
-          <div className="providers-grid">
-            <Reveal className="provider-card" delay={1}>
-              <div className="provider-header">
-                <span className="provider-badge">Free</span>
-                <h3 className="provider-name">Groq — Llama 3.3 70B</h3>
-              </div>
-              <ul className="provider-list">
-                <li>~30 requests per minute</li>
-                <li>~14,400 requests per day</li>
-                <li>Ultra-low latency inference</li>
-              </ul>
-            </Reveal>
-
-            <Reveal className="provider-card" delay={2}>
-              <div className="provider-header">
-                <span className="provider-badge">Free</span>
-                <h3 className="provider-name">OpenRouter — MiniMax M2</h3>
-              </div>
-              <ul className="provider-list">
-                <li>~20 requests per minute</li>
-                <li>~200 requests per day</li>
-                <li>Excellent backup capacity</li>
-              </ul>
-            </Reveal>
-          </div>
-
-          <Reveal>
-            <p style={{ marginTop: '32px', fontSize: '14px', color: 'var(--white-muted)' }}>
-              <IconTerminal2 size={16} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '8px' }} />
-              Limits may vary. Oddvision auto-balances between providers for optimal performance.
-            </p>
-          </Reveal>
-        </div>
-      </section>
 
       {/* Rules */}
       <section id="rules" className="section">
