@@ -2,7 +2,7 @@
 .env.local
 secrets.js
 load-test.js
-
+supabase
 # Node modules if you generate icons
 node_modules/
 package-lock.json
@@ -10,3 +10,4 @@ package-lock.json
 # OS files
 .DS_Store
 Thumbs.db
+
