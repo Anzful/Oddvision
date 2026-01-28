@@ -110,6 +110,62 @@ async function processRequest(prompt, sendResponse, tabId, timestamp) {
       provider = result.aiProvider || 'default';
     } catch (e) {}
 
+    // Handle Gemini Provider directly (Client-side)
+    if (provider === 'gemini') {
+      try {
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${OddvisionConfig.geminiKey}`;
+        
+        // System instruction (Pre-prompt)
+        const systemInstruction = `Always determine the correct answer.
+
+If the question contains answer choices labeled with letters or numbers (A, B, C, 1, 2, etc.):
+- Respond ONLY with the correct choice label(s).
+- Do NOT explain, even if the question asks for an explanation.
+
+If the question contains NO answer choices:
+- If the question asks to explain, describe, or justify, provide an explanation.
+- Otherwise, provide only the direct answer.
+
+Never add unnecessary text.
+Never explain when choices are present.
+Respond in the same language as the question.
+
+`;
+        const finalPrompt = systemInstruction + prompt;
+
+        const response = await fetch(geminiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: finalPrompt }] }]
+          })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+           throw new Error(data.error?.message || 'Gemini API Error');
+        }
+
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        
+        if (!text) throw new Error('No content generated');
+
+        sendResponse({
+          success: true,
+          response: text,
+          model: 'gemini-2.0-flash',
+          remaining: 9999 // Placeholder as this is client-side key
+        });
+        return;
+
+      } catch (error) {
+        console.error("Gemini Error:", error);
+        sendResponse({ success: false, error: "Gemini failed" });
+        return;
+      }
+    }
+
     // Call Edge Function (API keys are secure on server)
     const response = await fetch(`${OddvisionConfig.supabaseUrl}/functions/v1/call-ai`, {
       method: 'POST',
