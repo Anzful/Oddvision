@@ -1,80 +1,80 @@
 {
-  "manifest_version": 3,
-  "name": "Oddvision",
-  "version": "1.0.7",
-  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAi9qfSNUZC7i8Jb8JhKlkYas+3LD5Q6NQcQAeoMYbyN3r/pCA5OBnkvzWEeYHYy4C8ogSYRZTo88b/rfFUpCfLEHtq244p57/RTo84pZ8Pw23wIZZAAKUR6eshCTSDP/ENUP0x8bsK7AFahkNLkTcikxjOivH+tLk6I4L83JNmjG+jXHza77zRiC4Vv/Scq0snMvQ3luvjrkmQjq5Ucc+fWQTEBHAIGh0J/ebbzFe1VHbFgsWxhOCttWmtQOWmYWw1/7lwSFxQVLPTkVuATXHvbXF6Rxyrh5V1cYq0NhKan97R0CORhyU1yJnBRJWL+z2CM5uLXUC1OIebLDEZWdvEwIDAQAB",
-  "description": "Stealth overlay to capture and analyze any webpage with fast AI, via simple keyboard shortcuts.",
-  "permissions": [
-    "storage",
-    "activeTab",
-    "identity"
-  ],
-  "host_permissions": [
-    "https://czetxxmjcvfiavwzcvqb.supabase.co/*",
-    "https://generativelanguage.googleapis.com/*"
-  ],
-  "background": {
-    "service_worker": "background.js"
-  },
-  "content_scripts": [
-    {
-      "matches": [
-        "<all_urls>"
-      ],
-      "js": [
-        "content.js"
-      ],
-      "css": [
-        "overlay.css"
-      ],
-      "run_at": "document_idle",
-      "all_frames": false
-    }
-  ],
-  "action": {
-    "default_popup": "popup.html",
-    "default_icon": {
-      "16": "icons/icon16.png",
-      "32": "icons/icon32.png",
-      "48": "icons/icon48.png",
-      "128": "icons/icon128.png"
-    }
-  },
-  "options_page": "options.html",
-  "icons": {
-    "16": "icons/icon16.png",
-    "32": "icons/icon32.png",
-    "48": "icons/icon48.png",
-    "128": "icons/icon128.png"
-  },
-  "commands": {
-    "capture-context": {
-      "suggested_key": {
-        "default": "Alt+1",
-        "mac": "Alt+1"
-      },
-      "description": "Capture page context"
+    "manifest_version": 3,
+    "name": "Oddvision",
+    "version": "1.0.8",
+    "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAi9qfSNUZC7i8Jb8JhKlkYas+3LD5Q6NQcQAeoMYbyN3r/pCA5OBnkvzWEeYHYy4C8ogSYRZTo88b/rfFUpCfLEHtq244p57/RTo84pZ8Pw23wIZZAAKUR6eshCTSDP/ENUP0x8bsK7AFahkNLkTcikxjOivH+tLk6I4L83JNmjG+jXHza77zRiC4Vv/Scq0snMvQ3luvjrkmQjq5Ucc+fWQTEBHAIGh0J/ebbzFe1VHbFgsWxhOCttWmtQOWmYWw1/7lwSFxQVLPTkVuATXHvbXF6Rxyrh5V1cYq0NhKan97R0CORhyU1yJnBRJWL+z2CM5uLXUC1OIebLDEZWdvEwIDAQAB",
+    "description": "Stealth overlay to capture and analyze any webpage with fast AI, via simple keyboard shortcuts.",
+    "permissions": [
+        "storage",
+        "activeTab",
+        "identity"
+    ],
+    "host_permissions": [
+        "https://czetxxmjcvfiavwzcvqb.supabase.co/*",
+        "https://generativelanguage.googleapis.com/*"
+    ],
+    "background": {
+        "service_worker": "background.js"
     },
-    "ask-ai": {
-      "suggested_key": {
-        "default": "Alt+2",
-        "mac": "Alt+2"
-      },
-      "description": "Send context to AI"
+    "content_scripts": [
+        {
+            "matches": [
+                "<all_urls>"
+            ],
+            "js": [
+                "content.js"
+            ],
+            "css": [
+                "overlay.css"
+            ],
+            "run_at": "document_idle",
+            "all_frames": false
+        }
+    ],
+    "action": {
+        "default_popup": "popup.html",
+        "default_icon": {
+            "16": "icons/icon16.png",
+            "32": "icons/icon32.png",
+            "48": "icons/icon48.png",
+            "128": "icons/icon128.png"
+        }
     },
-    "toggle-overlay": {
-      "suggested_key": {
-        "default": "Alt+3",
-        "mac": "Alt+3"
-      },
-      "description": "Toggle results overlay"
+    "options_page": "options.html",
+    "icons": {
+        "16": "icons/icon16.png",
+        "32": "icons/icon32.png",
+        "48": "icons/icon48.png",
+        "128": "icons/icon128.png"
     },
-    "toggle-fake-mode": {
-      "suggested_key": {
-        "default": "Alt+7",
-        "mac": "Alt+7"
-      },
-      "description": "Toggle stealth mode"
+    "commands": {
+        "capture-context": {
+            "suggested_key": {
+                "default": "Alt+1",
+                "mac": "Alt+1"
+            },
+            "description": "Capture page context"
+        },
+        "ask-ai": {
+            "suggested_key": {
+                "default": "Alt+2",
+                "mac": "Alt+2"
+            },
+            "description": "Send context to AI"
+        },
+        "toggle-overlay": {
+            "suggested_key": {
+                "default": "Alt+3",
+                "mac": "Alt+3"
+            },
+            "description": "Toggle results overlay"
+        },
+        "toggle-fake-mode": {
+            "suggested_key": {
+                "default": "Alt+7",
+                "mac": "Alt+7"
+            },
+            "description": "Toggle stealth mode"
+        }
     }
-  }
 }
