@@ -307,7 +307,7 @@ async function loadUsersTable() {
 
 function renderUsersTable(users) {
   const tbody = document.getElementById('users-table-body');
-  const limit = 3; // Free user limit
+  const limit = 5; // Free user limit
 
   tbody.innerHTML = users.map(user => {
     const isPro = user.is_pro || false;

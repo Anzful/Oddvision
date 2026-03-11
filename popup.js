@@ -92,9 +92,9 @@ async function fetchUsage(user) {
         }
 
         let count = 0;
-        let limit = 3;
+        let limit = 5;
         let isPro = false;
-        let daysLeft = 0;
+        let hoursLeft = 0;
 
         if (data) {
             isPro = data.is_pro;
@@ -114,16 +114,16 @@ async function fetchUsage(user) {
             const diffTime = now - lastReset;
             const diffDays = diffTime / (1000 * 60 * 60 * 24);
 
-            if (diffDays >= 7) {
+            if (diffDays >= 1) {
                 count = 0;
-                daysLeft = 7;
+                hoursLeft = 24;
             } else {
                 count = data.prompts_count;
-                daysLeft = Math.ceil(7 - diffDays);
+                hoursLeft = Math.ceil((1 - diffDays) * 24);
             }
         } else {
             count = 0;
-            daysLeft = 7;
+            hoursLeft = 24;
         }
 
         if (isPro) {
@@ -150,7 +150,7 @@ async function fetchUsage(user) {
         } else {
             const displayCount = count > limit ? limit : count;
             usageCountEl.textContent = `${displayCount} / ${limit}`;
-            usageResetEl.textContent = `Resets in ~${daysLeft} day${daysLeft !== 1 ? 's' : ''}`;
+            usageResetEl.textContent = `Resets in ~${hoursLeft} hour${hoursLeft !== 1 ? 's' : ''}`;
             usageResetEl.style.color = '';
 
             if (count >= limit) {

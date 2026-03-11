@@ -84,14 +84,15 @@ export async function POST(req: Request) {
     }
 
     // 2. Update user_usage table (Using Upsert to guarantee row exists)
-    const updateData: any = { 
+    const proExpiresAt = new Date();
+    proExpiresAt.setDate(proExpiresAt.getDate() + 30);
+
+    const updateData: any = {
         user_id: userId,
         is_pro: true,
-        // Reset prompts count if upgrading to Pro, or keep existing logic
-        // Typically you don't want to wipe usage stats, but we must ensure the row exists.
-        // If row exists, this merges. If not, it creates.
+        pro_expires_at: proExpiresAt.toISOString(),
     };
-    
+
     if (nextBillingDate) {
        updateData.next_billing_date = nextBillingDate;
     }

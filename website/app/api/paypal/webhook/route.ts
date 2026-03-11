@@ -37,15 +37,19 @@ export async function POST(req: Request) {
     }
 
     switch (eventType) {
-      case "BILLING.SUBSCRIPTION.ACTIVATED":
+      case "BILLING.SUBSCRIPTION.ACTIVATED": {
         console.log(`✅ Activating Pro for user ${userId}`);
+        const proExpiresAt = new Date();
+        proExpiresAt.setDate(proExpiresAt.getDate() + 30);
         await supabaseAdmin
           .from("user_usage")
-          .upsert({ 
+          .upsert({
             user_id: userId,
             is_pro: true,
+            pro_expires_at: proExpiresAt.toISOString(),
           }, { onConflict: 'user_id' });
         break;
+      }
 
       case "BILLING.SUBSCRIPTION.CANCELLED":
         console.log(`❌ Cancelling Pro for user ${userId}`);
