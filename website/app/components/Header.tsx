@@ -33,7 +33,14 @@ export default function Header() {
           .eq('user_id', session.user.id)
           .maybeSingle();
         
-        if (data?.is_pro) setIsPro(true);
+        if (data?.is_pro) {
+          // Check if pro has expired
+          if (data.pro_expires_at && new Date(data.pro_expires_at) <= new Date()) {
+            setIsPro(false);
+          } else {
+            setIsPro(true);
+          }
+        }
       }
     };
     checkAuth();
@@ -41,14 +48,20 @@ export default function Header() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null);
       setIsPro(false);
-      
+
       if (session?.user) {
          const { data } = await supabase
           .from('user_usage')
           .select('*')
           .eq('user_id', session.user.id)
           .single();
-         if (data?.is_pro) setIsPro(true);
+         if (data?.is_pro) {
+           if (data.pro_expires_at && new Date(data.pro_expires_at) <= new Date()) {
+             setIsPro(false);
+           } else {
+             setIsPro(true);
+           }
+         }
       }
     });
 

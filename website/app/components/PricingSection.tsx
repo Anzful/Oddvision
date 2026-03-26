@@ -95,7 +95,12 @@ export default function PricingSection() {
         
         if (mounted) {
           if (usage) {
-            setIsPro(!!usage.is_pro);
+            let pro = !!usage.is_pro;
+            // Check if pro has expired
+            if (pro && usage.pro_expires_at && new Date(usage.pro_expires_at) <= new Date()) {
+              pro = false;
+            }
+            setIsPro(pro);
             setSubscriptionData(usage);
           } else {
             setIsPro(false);
