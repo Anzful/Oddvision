@@ -1,11 +1,9 @@
 // Oddvision Background Service Worker
 // API keys are now secured server-side via Supabase Edge Functions
 
-try {
-  importScripts('secrets.js', 'lib/supabase.js', 'lib/supabase-setup.js');
-} catch (e) {
-  console.error("Oddvision: Script import failed", e);
-}
+import './secrets.js';
+import './lib/supabase.js';
+import './lib/supabase-setup.js';
 
 // Request queue for rate limiting
 const requestQueue = [];
