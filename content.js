@@ -9,6 +9,17 @@ let lastAIResponse = ''; // Stores last AI response
 let overlayElement = null;
 let isProcessing = false; // Prevent multiple simultaneous requests
 
+// Role definitions
+const ROLES = {
+  picker:     { icon: '\u{1F3AF}', name: 'Picker' },
+  explainer:  { icon: '\u{1F4A1}', name: 'Explainer' },
+  summarizer: { icon: '\u{1F4DD}', name: 'Summarizer' },
+  writer:     { icon: '\u{270D}\uFE0F', name: 'Writer' },
+  solver:     { icon: '\u{1F9EE}', name: 'Solver' },
+  raw:        { icon: '\u{26A1}', name: 'Raw' },
+  custom:     { icon: '\u{1F527}', name: 'Custom' },
+};
+
 // Check if extension is enabled on load (default to true if unset)
 chrome.storage.local.get(['enabled'], (result) => {
   if (typeof result.enabled === 'boolean') {
@@ -43,6 +54,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     sendContextToAI();
   } else if (request.action === 'toggle-overlay') {
     toggleOverlay();
+  } else if (request.action === 'capture-screenshot') {
+    startScreenshotCapture();
   } else if (request.action === 'toggle-text-color') {
     toggleTextColor();
   } else if (request.action === 'queueUpdate') {
@@ -100,15 +113,24 @@ async function sendContextToAI() {
   showIndicatorDot('green'); // Show dot immediately
   
   try {
-    // Send just the context as the prompt
-    const prompt = `Please analyze and summarize the following webpage content:\n\n${pageContent}`;
-    
+    // Get active role and custom prompt
+    const roleConfig = await new Promise(resolve => {
+      chrome.storage.sync.get(['activeRole', 'enabledRoles', 'customRolePrompt'], resolve);
+    });
+    const activeRole = roleConfig.activeRole || (roleConfig.enabledRoles?.[0]) || 'picker';
+    const customPrompt = roleConfig.customRolePrompt || '';
+
+    // Send page content — the role's system prompt handles how to process it
+    const prompt = pageContent;
+
     // Call background script with automatic failover (no CORS restrictions!)
     const response = await new Promise((resolve, reject) => {
       chrome.runtime.sendMessage(
         {
           action: 'callAI',
-          prompt: prompt
+          prompt: prompt,
+          role: activeRole,
+          customPrompt: activeRole === 'custom' ? customPrompt : undefined
         },
         (response) => {
           if (chrome.runtime.lastError) {
@@ -265,18 +287,20 @@ function createOverlay() {
   overlay.innerHTML = `
     <div class="oddvision-container">
       <div class="oddvision-header">
-        <h2>🔮 Oddvision</h2>
+        <h2>\u{1F52E} Oddvision</h2>
         <div class="oddvision-header-buttons">
-          <button class="oddvision-copy" id="oddvision-copy-btn" title="Copy response">📋</button>
-          <button class="oddvision-color-toggle" id="oddvision-color-toggle-btn" title="Toggle text color (Alt+4)">⚫</button>
-          <button class="oddvision-close" id="oddvision-close-btn" title="Close (Alt+3)">×</button>
+          <div class="oddvision-role-icons" id="oddvision-role-icons"></div>
+          <div class="oddvision-header-divider"></div>
+          <button class="oddvision-copy" id="oddvision-copy-btn" title="Copy response">\u{1F4CB}</button>
+          <button class="oddvision-color-toggle" id="oddvision-color-toggle-btn" title="Toggle text color (Alt+4)">\u26AB</button>
+          <button class="oddvision-close" id="oddvision-close-btn" title="Close (Alt+3)">\u00D7</button>
         </div>
       </div>
       <div class="oddvision-content">
         <div class="oddvision-chat-area" id="oddvision-chat-area">
           <div class="oddvision-welcome">
             <p>Analysis will appear here</p>
-            <p class="oddvision-tip">Alt+1 capture · Alt+2 analyze</p>
+            <p class="oddvision-tip">Alt+1 capture \u00B7 Alt+2 analyze</p>
           </div>
         </div>
       </div>
@@ -312,7 +336,10 @@ function createOverlay() {
     const textColor = result.textColor || 'black';
     applyTextColor(textColor);
   });
-  
+
+  // Populate role icons
+  populateRoleIcons();
+
   return overlay;
 }
 
@@ -344,6 +371,9 @@ function showOverlay() {
 
   overlayElement.style.display = 'flex';
   overlayVisible = true;
+
+  // Refresh role icons
+  populateRoleIcons();
 
   // If we have AI response, display it
   if (lastAIResponse) {
@@ -435,6 +465,207 @@ function applyTextColor(color) {
     if (colorToggleBtn) colorToggleBtn.textContent = '⚫';
   }
 }
+
+// Screenshot region capture (Alt+4)
+function startScreenshotCapture() {
+  if (!extensionEnabled) {
+    showNotification('Oddvision is disabled in the popup.', 'error');
+    return;
+  }
+  if (isProcessing) return;
+
+  // Remove any existing selector
+  const existing = document.querySelector('#oddvision-screenshot-overlay');
+  if (existing) existing.remove();
+
+  const selectionOverlay = document.createElement('div');
+  selectionOverlay.id = 'oddvision-screenshot-overlay';
+
+  let startX, startY, selectionBox;
+  let isDragging = false;
+
+  // Get current text color for selection border
+  let selColor = 'black';
+  chrome.storage.sync.get(['textColor'], (result) => {
+    selColor = result.textColor || 'black';
+  });
+
+  selectionOverlay.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
+
+    selectionBox = document.createElement('div');
+    selectionBox.id = 'oddvision-selection-box';
+    selectionBox.classList.add('oddvision-sel-' + selColor);
+    selectionOverlay.appendChild(selectionBox);
+  });
+
+  selectionOverlay.addEventListener('mousemove', (e) => {
+    if (!isDragging || !selectionBox) return;
+
+    const x = Math.min(e.clientX, startX);
+    const y = Math.min(e.clientY, startY);
+    const w = Math.abs(e.clientX - startX);
+    const h = Math.abs(e.clientY - startY);
+
+    selectionBox.style.left = x + 'px';
+    selectionBox.style.top = y + 'px';
+    selectionBox.style.width = w + 'px';
+    selectionBox.style.height = h + 'px';
+  });
+
+  selectionOverlay.addEventListener('mouseup', (e) => {
+    if (!isDragging) return;
+    isDragging = false;
+
+    const x = Math.min(e.clientX, startX);
+    const y = Math.min(e.clientY, startY);
+    const w = Math.abs(e.clientX - startX);
+    const h = Math.abs(e.clientY - startY);
+
+    // Remove overlay before capturing
+    selectionOverlay.remove();
+    document.removeEventListener('keydown', escHandler);
+
+    if (w < 10 || h < 10) return; // Too small
+
+    // Wait for repaint so the overlay isn't in the screenshot
+    requestAnimationFrame(() => {
+      setTimeout(() => captureAndAnalyzeRegion(x, y, w, h), 50);
+    });
+  });
+
+  const escHandler = (e) => {
+    if (e.key === 'Escape') {
+      selectionOverlay.remove();
+      document.removeEventListener('keydown', escHandler);
+    }
+  };
+  document.addEventListener('keydown', escHandler);
+
+  document.body.appendChild(selectionOverlay);
+}
+
+// Capture tab, crop to region, send to AI
+async function captureAndAnalyzeRegion(x, y, w, h) {
+  isProcessing = true;
+  showIndicatorDot('green');
+
+  try {
+    // Ask background to capture the visible tab
+    const dataUrl = await new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({ action: 'captureTab' }, (response) => {
+        if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+        else if (response.error) reject(new Error(response.error));
+        else resolve(response.dataUrl);
+      });
+    });
+
+    // Crop using canvas
+    const dpr = window.devicePixelRatio || 1;
+    const img = new Image();
+    img.src = dataUrl;
+    await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, x * dpr, y * dpr, w * dpr, h * dpr, 0, 0, w * dpr, h * dpr);
+
+    const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+    const base64Image = croppedDataUrl.split(',')[1];
+
+    // Get active role
+    const roleConfig = await new Promise(resolve => {
+      chrome.storage.sync.get(['activeRole', 'enabledRoles', 'customRolePrompt'], resolve);
+    });
+    const activeRole = roleConfig.activeRole || (roleConfig.enabledRoles?.[0]) || 'picker';
+    const customPrompt = roleConfig.customRolePrompt || '';
+
+    // Build prompt — role's system prompt handles how to process it
+    let prompt = 'The following is a screenshot from a webpage. Apply your role instructions to the content shown in the image.';
+    if (pageContent) {
+      prompt += '\n\nAdditional page text:\n' + pageContent;
+    }
+
+    // Send to AI with image
+    const response = await new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({
+        action: 'callAI',
+        prompt,
+        role: activeRole,
+        customPrompt: activeRole === 'custom' ? customPrompt : undefined,
+        image: base64Image
+      }, (resp) => {
+        if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+        else if (resp.success) resolve(resp.response);
+        else reject(new Error(resp.error));
+      });
+    });
+
+    if (response && typeof response === 'object' && response.response) {
+      lastAIResponse = response.response;
+    } else {
+      lastAIResponse = response;
+    }
+
+    if (overlayVisible && overlayElement) {
+      displayAIResponse(lastAIResponse);
+    }
+  } catch (error) {
+    showNotification(error.message, 'error');
+  } finally {
+    isProcessing = false;
+  }
+}
+
+// Populate role icons in overlay header
+function populateRoleIcons() {
+  const container = overlayElement?.querySelector('#oddvision-role-icons');
+  if (!container) return;
+
+  chrome.storage.sync.get(['enabledRoles', 'activeRole'], (result) => {
+    const enabledRoles = result.enabledRoles || ['picker'];
+    const activeRole = result.activeRole || enabledRoles[0] || 'picker';
+
+    container.innerHTML = '';
+    enabledRoles.forEach(roleId => {
+      const role = ROLES[roleId];
+      if (!role) return;
+
+      const btn = document.createElement('button');
+      btn.className = 'oddvision-role-btn' + (roleId === activeRole ? ' active' : '');
+      btn.textContent = role.icon;
+      btn.title = role.name;
+      btn.dataset.role = roleId;
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setActiveRole(roleId);
+      });
+      container.appendChild(btn);
+    });
+  });
+}
+
+// Set active role and update UI
+function setActiveRole(roleId) {
+  chrome.storage.sync.set({ activeRole: roleId }, () => {
+    const container = overlayElement?.querySelector('#oddvision-role-icons');
+    if (!container) return;
+    container.querySelectorAll('.oddvision-role-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.role === roleId);
+    });
+  });
+}
+
+// Listen for role changes from options page
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'sync' && (changes.enabledRoles || changes.activeRole)) {
+    populateRoleIcons();
+  }
+});
 
 // Update queue counter (now on indicator dot, not overlay)
 function updateQueueCounter(count) {

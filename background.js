@@ -32,12 +32,8 @@ chrome.commands.onCommand.addListener((command) => {
         action = 'ask-ai';
       } else if (command === 'toggle-overlay') {
         action = 'toggle-overlay';
-      } else if (command === 'toggle-fake-mode') {
-        chrome.storage.local.get(['fakeMode'], (result) => {
-          const newState = !result.fakeMode;
-          chrome.storage.local.set({ fakeMode: newState });
-        });
-        return;
+      } else if (command === 'capture-screenshot') {
+        action = 'capture-screenshot';
       }
 
       if (action) {
@@ -47,10 +43,21 @@ chrome.commands.onCommand.addListener((command) => {
   });
 });
 
-// Handle messages from content script
+// Handle messages from content script and popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'callAI') {
-    addToQueue(request.prompt, sendResponse, sender.tab?.id);
+    addToQueue(request.prompt, sendResponse, sender.tab?.id, request.role, request.customPrompt, request.image);
+    return true;
+  }
+
+  if (request.action === 'captureTab') {
+    chrome.tabs.captureVisibleTab(null, { format: 'jpeg', quality: 90 }, (dataUrl) => {
+      if (chrome.runtime.lastError) {
+        sendResponse({ error: chrome.runtime.lastError.message });
+      } else {
+        sendResponse({ dataUrl });
+      }
+    });
     return true;
   }
 
@@ -58,14 +65,71 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     sendResponse({ count: requestQueue.length });
     return true;
   }
+
+  if (request.action === 'startLogin') {
+    handleLogin().then(sendResponse).catch(err => sendResponse({ success: false, error: err.message }));
+    return true;
+  }
+
+  if (request.action === 'logout') {
+    supabase.auth.signOut().then(() => sendResponse({ success: true })).catch(err => sendResponse({ success: false, error: err.message }));
+    return true;
+  }
 });
 
+// Handle Google OAuth login in background (popup closes when auth window opens)
+async function handleLogin() {
+  const redirectUrl = chrome.identity.getRedirectURL();
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: redirectUrl,
+      skipBrowserRedirect: true
+    }
+  });
+  if (error) throw error;
+
+  const responseUrl = await new Promise((resolve, reject) => {
+    chrome.identity.launchWebAuthFlow({
+      url: data.url,
+      interactive: true
+    }, (url) => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message));
+      } else {
+        resolve(url);
+      }
+    });
+  });
+
+  if (!responseUrl) throw new Error('No response from auth flow');
+
+  const urlObj = new URL(responseUrl);
+  const params = new URLSearchParams(urlObj.hash.substring(1));
+  const access_token = params.get('access_token');
+  const refresh_token = params.get('refresh_token');
+
+  if (!access_token) {
+    const errorDesc = params.get('error_description') || params.get('error');
+    throw new Error(errorDesc || 'No access token received');
+  }
+
+  const { data: { session }, error: sessionError } = await supabase.auth.setSession({
+    access_token,
+    refresh_token
+  });
+  if (sessionError) throw sessionError;
+
+  return { success: true, session };
+}
+
 // Add request to queue
-async function addToQueue(prompt, sendResponse, tabId) {
+async function addToQueue(prompt, sendResponse, tabId, role, customPrompt, image) {
   const now = Date.now();
   const timeSinceLastRequest = now - lastRequestTime;
 
-  requestQueue.push({ prompt, sendResponse, tabId, timestamp: now });
+  requestQueue.push({ prompt, sendResponse, tabId, timestamp: now, role, customPrompt, image });
   notifyQueueUpdate();
 
   if (!isProcessingQueue && timeSinceLastRequest >= BASE_DELAY) {
@@ -89,7 +153,7 @@ function notifyQueueUpdate() {
 }
 
 // Process single request via Edge Function
-async function processRequest(prompt, sendResponse, tabId, timestamp) {
+async function processRequest(prompt, sendResponse, tabId, timestamp, role, customPrompt, image) {
   const waitTime = ((Date.now() - timestamp) / 1000).toFixed(1);
   totalProcessed++;
 
@@ -101,14 +165,11 @@ async function processRequest(prompt, sendResponse, tabId, timestamp) {
       return;
     }
 
-    // Get provider preference
-    let provider = 'default';
-    try {
-      const result = await new Promise(resolve => {
-        chrome.storage.sync.get(['aiProvider'], resolve);
-      });
-      provider = result.aiProvider || 'default';
-    } catch (e) { }
+    // Build request body
+    const body = { prompt, role: role || 'picker', customPrompt };
+    if (image) {
+      body.image = image;
+    }
 
     // Call Edge Function (API keys are secure on server)
     const response = await fetch(`${OddvisionConfig.supabaseUrl}/functions/v1/call-ai`, {
@@ -117,7 +178,7 @@ async function processRequest(prompt, sendResponse, tabId, timestamp) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${session.access_token}`,
       },
-      body: JSON.stringify({ prompt, provider }),
+      body: JSON.stringify(body),
     });
 
     const data = await response.json();
@@ -153,10 +214,10 @@ async function processQueue() {
   isProcessingQueue = true;
 
   while (requestQueue.length > 0) {
-    const { prompt, sendResponse, tabId, timestamp } = requestQueue.shift();
+    const { prompt, sendResponse, tabId, timestamp, role, customPrompt, image } = requestQueue.shift();
     notifyQueueUpdate();
 
-    await processRequest(prompt, sendResponse, tabId, timestamp);
+    await processRequest(prompt, sendResponse, tabId, timestamp, role, customPrompt, image);
 
     if (requestQueue.length > 0) {
       await new Promise(resolve => setTimeout(resolve, getJitteredDelay()));

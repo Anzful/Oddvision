@@ -10,7 +10,6 @@ const overlayPositionSelect = document.getElementById('overlay-position');
 const accountEmailEl = document.getElementById('account-email');
 const logoutBtn = document.getElementById('logout-btn');
 const adminTab = document.getElementById('admin-tab');
-const aiProviderSelect = document.getElementById('ai-provider');
 const userSearchInput = document.getElementById('user-search');
 
 // State
@@ -104,13 +103,6 @@ async function loadAdminData() {
     loadUsersTable(),
     loadUsageChart()
   ]);
-  
-  // Load AI provider setting
-  chrome.storage.sync.get(['aiProvider'], (result) => {
-    if (aiProviderSelect) {
-      aiProviderSelect.value = result.aiProvider || 'default';
-    }
-  });
 }
 
 // Load Analytics
@@ -471,12 +463,79 @@ async function handleProToggle(e) {
   }
 }
 
-// AI Provider Change
-aiProviderSelect?.addEventListener('change', () => {
-  chrome.storage.sync.set({ aiProvider: aiProviderSelect.value }, () => {
-    showNotification(`Provider set to: ${aiProviderSelect.value}`);
+// --- AI Roles ---
+const roleGrid = document.getElementById('role-grid');
+const customPromptSection = document.getElementById('custom-prompt-section');
+const customPromptTextarea = document.getElementById('custom-prompt');
+
+function initRoles() {
+  // Load saved roles
+  chrome.storage.sync.get(['enabledRoles', 'customRolePrompt'], (result) => {
+    const enabledRoles = result.enabledRoles || ['picker'];
+
+    // Apply enabled state to cards
+    roleGrid.querySelectorAll('.role-card').forEach(card => {
+      const role = card.dataset.role;
+      if (enabledRoles.includes(role)) {
+        card.classList.add('enabled');
+      } else {
+        card.classList.remove('enabled');
+      }
+    });
+
+    // Show custom prompt section if custom is enabled
+    if (enabledRoles.includes('custom')) {
+      customPromptSection.classList.add('visible');
+    }
+
+    // Load custom prompt
+    if (result.customRolePrompt) {
+      customPromptTextarea.value = result.customRolePrompt;
+    }
   });
-});
+
+  // Click handlers for role cards
+  roleGrid.addEventListener('click', (e) => {
+    const card = e.target.closest('.role-card');
+    if (!card) return;
+
+    card.classList.toggle('enabled');
+
+    // Collect all enabled roles
+    const enabledRoles = [];
+    roleGrid.querySelectorAll('.role-card.enabled').forEach(c => {
+      enabledRoles.push(c.dataset.role);
+    });
+
+    // If active role was disabled, switch to first enabled
+    chrome.storage.sync.get(['activeRole'], (result) => {
+      const updates = { enabledRoles };
+      if (result.activeRole && !enabledRoles.includes(result.activeRole)) {
+        updates.activeRole = enabledRoles[0] || 'picker';
+      }
+      chrome.storage.sync.set(updates);
+    });
+
+    // Toggle custom prompt section
+    if (card.dataset.role === 'custom') {
+      customPromptSection.classList.toggle('visible', card.classList.contains('enabled'));
+    }
+
+    showNotification('Roles updated');
+  });
+
+  // Save custom prompt on change (debounced)
+  let customPromptTimer;
+  customPromptTextarea.addEventListener('input', () => {
+    clearTimeout(customPromptTimer);
+    customPromptTimer = setTimeout(() => {
+      chrome.storage.sync.set({ customRolePrompt: customPromptTextarea.value });
+      showNotification('Custom prompt saved');
+    }, 800);
+  });
+}
+
+initRoles();
 
 // Logout
 logoutBtn?.addEventListener('click', async () => {
