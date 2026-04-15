@@ -1,7 +1,7 @@
 // Oddvision Background Service Worker
 // API keys are now secured server-side via Supabase Edge Functions
 
-import './secrets.js';
+import './config.js';
 import './lib/supabase.js';
 import './lib/supabase-setup.js';
 
