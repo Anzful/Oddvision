@@ -5,7 +5,7 @@ export default function Privacy() {
     <div className="privacy-page">
       <div className="privacy-container">
         <h1>Privacy Policy</h1>
-        <span className="privacy-date">Last updated: November 22, 2025</span>
+        <span className="privacy-date">Last updated: April 16, 2026</span>
 
         <section className="privacy-section">
           <h2>Introduction</h2>
@@ -35,7 +35,7 @@ export default function Privacy() {
           </p>
           <ul>
             <li>Timestamp of the request</li>
-            <li>AI Model used (e.g., Llama 3, MiniMax)</li>
+            <li>AI Model used</li>
             <li>Character count (length) of the prompt</li>
           </ul>
           <p>
@@ -50,7 +50,7 @@ export default function Privacy() {
           <ul>
             <li><strong>Trigger:</strong> Manual only (keyboard shortcut)</li>
             <li><strong>Processing:</strong> This text is temporarily held in your browser&apos;s memory.</li>
-            <li><strong>Sharing:</strong> When you press <strong>Alt+2</strong>, the text is sent directly to AI providers (Groq or OpenRouter) for analysis.</li>
+            <li><strong>Sharing:</strong> When you press <strong>Alt+2</strong>, the text is sent to our server for AI analysis. When you press <strong>Alt+4</strong>, a screenshot region is sent for visual AI analysis.</li>
             <li><strong>No Permanent Storage:</strong> We do not save this content on our servers. It is discarded immediately after the AI response is received.</li>
           </ul>
         </section>
@@ -66,9 +66,8 @@ export default function Privacy() {
               <a href="https://supabase.com/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>)
             </li>
             <li>
-              <strong>Groq & OpenRouter:</strong> AI inference providers that process your text prompts. (
-              <a href="https://groq.com/privacy-policy/" target="_blank" rel="noopener noreferrer">Groq Policy</a>, 
-              <a href="https://openrouter.ai/privacy" target="_blank" rel="noopener noreferrer">OpenRouter Policy</a>)
+              <strong>Google AI (Gemini):</strong> AI inference provider that processes your text and image prompts. (
+              <a href="https://ai.google.dev/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a>)
             </li>
             <li>
               <strong>PayPal:</strong> Payment processing for Pro subscriptions. We do not store credit card details. (
@@ -118,7 +117,7 @@ export default function Privacy() {
           <ul>
             <li><strong>Stop using the extension:</strong> Disable or uninstall from <code>chrome://extensions</code></li>
             <li><strong>Manage Account:</strong> You can sign out at any time via the extension popup.</li>
-            <li><strong>Don&apos;t capture sensitive content:</strong> Only press Alt+1 when you&apos;re comfortable sharing the visible text with AI providers.</li>
+            <li><strong>Don&apos;t capture sensitive content:</strong> Only press Alt+1 or Alt+4 when you&apos;re comfortable sharing the visible content with AI.</li>
           </ul>
         </section>
 

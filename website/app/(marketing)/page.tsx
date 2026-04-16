@@ -12,6 +12,8 @@ import {
   IconRocket,
   IconCheck,
   IconShield,
+  IconScreenshot,
+  IconMask,
 } from "@tabler/icons-react";
 import Reveal from "../components/Reveal";
 import PricingSection from "../components/PricingSection";
@@ -85,6 +87,12 @@ export default function Home() {
                     <span style={{ color: 'var(--white-muted)' }}>+</span>
                     <span className="kbd">3</span>
                     <span className="kbd-label">View</span>
+                  </div>
+                  <div className="kbd-item">
+                    <span className="kbd">Alt</span>
+                    <span style={{ color: 'var(--white-muted)' }}>+</span>
+                    <span className="kbd">4</span>
+                    <span className="kbd-label">Screenshot</span>
                   </div>
                 </div>
               </Reveal>
@@ -191,13 +199,14 @@ export default function Home() {
               </div>
               <h3 className="feature-title">Keyboard-first</h3>
               <p className="feature-text">
-                Three shortcuts is all you need. Capture, analyze, and view without 
-                touching your mouse.
+                Four shortcuts is all you need. Capture, analyze, view, and screenshot
+                without touching your mouse.
               </p>
               <div className="feature-keys">
                 <span className="feature-key">Alt+1</span>
                 <span className="feature-key">Alt+2</span>
                 <span className="feature-key">Alt+3</span>
+                <span className="feature-key">Alt+4</span>
               </div>
             </Reveal>
 
@@ -210,7 +219,7 @@ export default function Home() {
               </div>
               <h3 className="feature-title">Instant responses</h3>
               <p className="feature-text">
-                Smart failover between multiple AI providers ensures you always 
+                Smart AI failover ensures you always
                 get an answer, even during peak times.
               </p>
               <div className="feature-speed">
@@ -220,6 +229,30 @@ export default function Home() {
             </Reveal>
 
             <Reveal className="feature-card feature-card-wide" delay={4}>
+              <div className="feature-card-glow" />
+              <div className="feature-icon-wrapper">
+                <div className="feature-icon feature-icon-purple">
+                  <IconMask size={28} />
+                </div>
+              </div>
+              <div className="feature-card-content">
+                <h3 className="feature-title">AI Roles</h3>
+                <p className="feature-text">
+                  Switch between specialized AI modes on the fly. Each role shapes how the AI
+                  reads and responds to your content — or create your own custom role.
+                </p>
+              </div>
+              <div className="feature-checklist">
+                <div className="feature-check"><IconCheck size={16} /> Picker</div>
+                <div className="feature-check"><IconCheck size={16} /> Explainer</div>
+                <div className="feature-check"><IconCheck size={16} /> Summarizer</div>
+                <div className="feature-check"><IconCheck size={16} /> Writer</div>
+                <div className="feature-check"><IconCheck size={16} /> Solver</div>
+                <div className="feature-check"><IconCheck size={16} /> Custom</div>
+              </div>
+            </Reveal>
+
+            <Reveal className="feature-card feature-card-wide" delay={5}>
               <div className="feature-card-glow" />
               <div className="feature-icon-wrapper">
                 <div className="feature-icon feature-icon-orange">
@@ -249,7 +282,7 @@ export default function Home() {
           <Reveal>
             <div className="section-header section-header-center">
               <span className="section-label">How it works</span>
-              <h2 className="section-title">Three keystrokes to AI power</h2>
+              <h2 className="section-title">Four keystrokes to AI power</h2>
               <p className="section-subtitle">
                 Simple, fast, and stays out of your way.
               </p>
@@ -297,8 +330,8 @@ export default function Home() {
                 </div>
                 <h3 className="step-title">Analyze</h3>
                 <p className="step-text">
-                  Send to AI instantly. Uses Groq or OpenRouter for 
-                  lightning-fast inference with smart failover.
+                  Send to AI instantly. Lightning-fast inference
+                  with smart failover built in.
                 </p>
                 <div className="step-keyboard">
                   <div className="step-key">Alt</div>
@@ -319,13 +352,35 @@ export default function Home() {
                 </div>
                 <h3 className="step-title">View</h3>
                 <p className="step-text">
-                  Reveal the stealth overlay with your AI response. 
+                  Reveal the stealth overlay with your AI response.
                   No tab switching required. It just appears.
                 </p>
                 <div className="step-keyboard">
                   <div className="step-key">Alt</div>
                   <span className="step-key-plus">+</span>
                   <div className="step-key step-key-green">3</div>
+                </div>
+              </Reveal>
+
+              <Reveal className="step-card" delay={4}>
+                <div className="step-header">
+                  <div className="step-number-wrapper">
+                    <span className="step-number">04</span>
+                    <div className="step-number-glow" />
+                  </div>
+                  <div className="step-icon step-icon-orange">
+                    <IconScreenshot size={24} />
+                  </div>
+                </div>
+                <h3 className="step-title">Screenshot</h3>
+                <p className="step-text">
+                  Select any region on screen to capture and send to AI
+                  for visual analysis. Works with images, charts, and more.
+                </p>
+                <div className="step-keyboard">
+                  <div className="step-key">Alt</div>
+                  <span className="step-key-plus">+</span>
+                  <div className="step-key step-key-orange">4</div>
                 </div>
               </Reveal>
             </div>
@@ -432,7 +487,7 @@ export default function Home() {
                   </div>
                   <div className="cta-feature">
                     <IconCheck size={16} />
-                    No signup required
+                    Quick Google sign-in
                   </div>
                   <div className="cta-feature">
                     <IconCheck size={16} />

@@ -104,7 +104,6 @@ export default function Header() {
             <nav className="nav">
               <Link href="/#features" className="nav-link">Features</Link>
               <Link href="/#how" className="nav-link">How it works</Link>
-              <Link href="/#providers" className="nav-link">Providers</Link>
               <Link href="/#pricing" className="nav-link">Pricing</Link>
               
               {user ? (
@@ -163,7 +162,6 @@ export default function Header() {
       <nav className={`mobile-nav ${isMenuOpen ? 'open' : ''}`}>
         <Link href="/#features" onClick={() => setIsMenuOpen(false)}>Features</Link>
         <Link href="/#how" onClick={() => setIsMenuOpen(false)}>How it works</Link>
-        <Link href="/#providers" onClick={() => setIsMenuOpen(false)}>Providers</Link>
         <Link href="/#pricing" onClick={() => setIsMenuOpen(false)}>Pricing</Link>
         {user ? (
           <>
