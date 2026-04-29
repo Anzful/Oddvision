@@ -1,43 +1,54 @@
-// Oddvision Options Script - Enhanced Admin Panel
+// Oddvision Options Script - Mission Control Analytics v2
 //
-// Features: Tabbed interface, Usage analytics, User management
-//
+// Features: Date-range chart, bar click drill-down, sortable/filterable user table,
+//           accurate analytics from usage_logs (not resetting prompts_count).
 
-// DOM Elements
-const settingsForm = document.getElementById('settings-form');
-const notification = document.getElementById('notification');
+// ── DOM Elements ──────────────────────────────────────────────────────────────
+const settingsForm         = document.getElementById('settings-form');
+const notification         = document.getElementById('notification');
 const overlayPositionSelect = document.getElementById('overlay-position');
-const accountEmailEl = document.getElementById('account-email');
-const logoutBtn = document.getElementById('logout-btn');
-const adminTab = document.getElementById('admin-tab');
-const userSearchInput = document.getElementById('user-search');
+const accountEmailEl       = document.getElementById('account-email');
+const logoutBtn            = document.getElementById('logout-btn');
+const adminTab             = document.getElementById('admin-tab');
+const userSearchInput      = document.getElementById('user-search');
 
-// State
-let currentPeriod = 'today';
-let allUsers = [];
-let usageData = {};
+// ── State ─────────────────────────────────────────────────────────────────────
+let currentPeriod     = 'today';
+let allUsers          = [];
+let usageData         = {};
+let chartData         = [];    // [{ day, prompt_count, unique_users }]
+let chartRange        = 30;    // days shown by default
+let chartMetric       = 'prompts'; // 'prompts' | 'users'
+let customRangeStart  = null;
+let customRangeEnd    = null;
+let sortColumn        = 'last_active_at';
+let sortDirection     = 'desc';
+let statusFilter      = 'all'; // 'all' | 'pro' | 'free'
+let selectedDays      = new Set(); // ISO date strings (yyyy-mm-dd) — multi-select bars
+let usersTableReqId   = 0;         // last-write-wins token for concurrent table reloads
 
-// Initialize
+// ── Initialize ────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
   await initPage();
   setupTabs();
   setupPeriodTabs();
   setupSearch();
+  setupAnalyticsControls();
+  setupMetricToggle();
+  setupTableSort();
+  setupStatusFilter();
+  setupDayDetailClose();
 });
 
 async function initPage() {
-  // Load overlay position
   chrome.storage.sync.get(['overlayPosition'], (result) => {
     overlayPositionSelect.value = result.overlayPosition || 'top-right';
   });
 
-  // Check session
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
       accountEmailEl.textContent = session.user.email;
-
-      // Check founder status
       const isFounder = OddvisionConfig.founderIds?.includes(session.user.id);
       if (isFounder) {
         adminTab.classList.remove('hidden');
@@ -51,24 +62,20 @@ async function initPage() {
   }
 }
 
-// Tab Navigation
+// ── Tab Navigation ────────────────────────────────────────────────────────────
 function setupTabs() {
   document.querySelectorAll('.tab').forEach(tab => {
     tab.addEventListener('click', () => {
       const tabId = tab.dataset.tab;
-      
-      // Update tab buttons
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
-      
-      // Update tab content
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
       document.getElementById(`tab-${tabId}`).classList.add('active');
     });
   });
 }
 
-// Period Tabs for Analytics
+// ── Period Tabs (stats cards) ─────────────────────────────────────────────────
 function setupPeriodTabs() {
   document.querySelectorAll('.period-tab').forEach(tab => {
     tab.addEventListener('click', () => {
@@ -80,96 +87,276 @@ function setupPeriodTabs() {
   });
 }
 
-// Search functionality
+// ── Analytics Date-Range Controls ─────────────────────────────────────────────
+function setupAnalyticsControls() {
+  const rangeBtns      = document.querySelectorAll('.range-btn');
+  const customInputs   = document.getElementById('custom-range-inputs');
+  const applyBtn       = document.getElementById('apply-range');
+  const rangeStartEl   = document.getElementById('range-start');
+  const rangeEndEl     = document.getElementById('range-end');
+
+  // Pre-fill custom inputs with a sensible default
+  const today = new Date();
+  rangeEndEl.value = today.toISOString().split('T')[0];
+  const ago30 = new Date(today);
+  ago30.setDate(ago30.getDate() - 29);
+  rangeStartEl.value = ago30.toISOString().split('T')[0];
+
+  rangeBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      rangeBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const days = btn.dataset.days;
+      if (days === 'custom') {
+        customInputs.classList.remove('hidden');
+      } else {
+        customInputs.classList.add('hidden');
+        chartRange       = parseInt(days, 10);
+        customRangeStart = null;
+        customRangeEnd   = null;
+        loadChartData();
+      }
+    });
+  });
+
+  applyBtn?.addEventListener('click', () => {
+    const s = rangeStartEl.value;
+    const e = rangeEndEl.value;
+    if (s && e && s <= e) {
+      customRangeStart = s;
+      customRangeEnd   = e;
+      loadChartData();
+    }
+  });
+}
+
+// ── Metric Toggle (Prompts / Unique Users) ────────────────────────────────────
+function setupMetricToggle() {
+  document.querySelectorAll('.metric-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.metric-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      chartMetric = btn.dataset.metric;
+      renderChart(chartData);
+    });
+  });
+}
+
+// ── Table Sort ────────────────────────────────────────────────────────────────
+function setupTableSort() {
+  document.querySelectorAll('.users-table th.sortable').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.col;
+      if (sortColumn === col) {
+        sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortColumn    = col;
+        sortDirection = 'desc';
+      }
+      updateSortIcons();
+      applyFilters();
+    });
+  });
+  // Set initial icon state
+  updateSortIcons();
+}
+
+function updateSortIcons() {
+  document.querySelectorAll('.users-table th.sortable').forEach(th => {
+    th.classList.remove('sort-asc', 'sort-desc');
+    if (th.dataset.col === sortColumn) {
+      th.classList.add(sortDirection === 'asc' ? 'sort-asc' : 'sort-desc');
+    }
+  });
+}
+
+// ── Status Filter ─────────────────────────────────────────────────────────────
+function setupStatusFilter() {
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      statusFilter = btn.dataset.filter;
+      applyFilters();
+    });
+  });
+}
+
+// ── Search ────────────────────────────────────────────────────────────────────
 function setupSearch() {
-  userSearchInput?.addEventListener('input', (e) => {
-    const query = e.target.value.toLowerCase();
-    filterUsersTable(query);
+  userSearchInput?.addEventListener('input', () => applyFilters());
+}
+
+// ── Combined Filter + Sort + Render ──────────────────────────────────────────
+function applyFilters() {
+  const query = (userSearchInput?.value || '').toLowerCase();
+
+  let filtered = allUsers.filter(user => {
+    const email         = (user.email || '').toLowerCase();
+    const matchSearch   = email.includes(query);
+    const matchStatus   =
+      statusFilter === 'all'  ? true :
+      statusFilter === 'pro'  ? !!user.is_pro :
+      /* free */                !user.is_pro;
+    return matchSearch && matchStatus;
+  });
+
+  filtered = sortUsers(filtered, sortColumn, sortDirection);
+  renderUsersTable(filtered);
+  updateUserCountLabel(filtered.length, allUsers.length);
+}
+
+function sortUsers(users, col, dir) {
+  const dateCols = new Set(['created_at', 'last_reset_at', 'last_active_at']);
+  return [...users].sort((a, b) => {
+    let av = a[col];
+    let bv = b[col];
+
+    if (dateCols.has(col)) {
+      av = av ? new Date(av).getTime() : 0;
+      bv = bv ? new Date(bv).getTime() : 0;
+    } else if (typeof av === 'string') {
+      av = av.toLowerCase();
+      bv = (bv || '').toLowerCase();
+    } else {
+      av = Number(av) || 0;
+      bv = Number(bv) || 0;
+    }
+
+    if (av < bv) return dir === 'asc' ? -1 : 1;
+    if (av > bv) return dir === 'asc' ?  1 : -1;
+    return 0;
   });
 }
 
-function filterUsersTable(query) {
-  const rows = document.querySelectorAll('#users-table-body tr');
-  rows.forEach(row => {
-    const email = row.querySelector('.user-email')?.textContent.toLowerCase() || '';
-    row.style.display = email.includes(query) ? '' : 'none';
+function updateUserCountLabel(shown, total) {
+  const el = document.getElementById('user-count-label');
+  if (!el) return;
+  el.textContent = shown === total ? `(${total})` : `(${shown} / ${total})`;
+}
+
+// ── Day Detail Panel (supports multi-select) ─────────────────────────────────
+function setupDayDetailClose() {
+  document.getElementById('close-day-detail')?.addEventListener('click', () => {
+    selectedDays.clear();
+    document.querySelectorAll('#usage-chart .chart-bar.selected')
+      .forEach(b => b.classList.remove('selected'));
+    onSelectionChange();
   });
 }
 
-// Load Admin Data
+// Builds a human header for the current selection
+function describeSelection() {
+  const days = Array.from(selectedDays).sort();
+  if (days.length === 0) return '';
+
+  const fmt = d => new Date(d + 'T00:00:00')
+    .toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
+  if (days.length === 1) {
+    const d = new Date(days[0] + 'T00:00:00');
+    return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  }
+
+  // Check if contiguous (consecutive calendar days)
+  const first = new Date(days[0] + 'T00:00:00');
+  const last  = new Date(days[days.length - 1] + 'T00:00:00');
+  const span  = Math.round((last - first) / 86_400_000) + 1;
+  const contiguous = span === days.length;
+
+  if (contiguous) return `${fmt(days[0])} → ${fmt(days[days.length - 1])} · ${days.length} days`;
+  if (days.length <= 4) return days.map(fmt).join(', ');
+  return `${days.length} days selected`;
+}
+
+// Called when selection changes (after table re-fetches with new range)
+function updateDayDetailPanel() {
+  const panel = document.getElementById('day-detail-panel');
+  if (selectedDays.size === 0) { panel.classList.remove('visible'); return; }
+
+  document.getElementById('day-detail-date').textContent = describeSelection();
+
+  // Aggregate prompts from chartData (single source of truth for the chart)
+  const sumPrompts = chartData
+    .filter(r => selectedDays.has(r.day))
+    .reduce((acc, r) => acc + (r.prompt_count || 0), 0);
+
+  document.getElementById('day-detail-prompts').textContent = formatNumber(sumPrompts);
+
+  // Unique users + avg are filled in after table loads (we count distinct users with range_prompts > 0)
+  // For now, show "—" if table not loaded yet.
+  const usersWithUsage = allUsers.filter(u => (u.range_prompts || 0) > 0).length;
+  document.getElementById('day-detail-users').textContent = formatNumber(usersWithUsage);
+  const avg = usersWithUsage > 0 ? (sumPrompts / usersWithUsage).toFixed(1) : '0';
+  document.getElementById('day-detail-avg').textContent = avg;
+
+  panel.classList.add('visible');
+}
+
+function hideDayDetail() {
+  document.getElementById('day-detail-panel').classList.remove('visible');
+}
+
+// ── Load Admin Data ───────────────────────────────────────────────────────────
 async function loadAdminData() {
   await Promise.all([
     loadAnalytics(),
     loadUsersTable(),
-    loadUsageChart()
+    loadChartData(),
   ]);
 }
 
-// Load Analytics
+// ── Analytics (Stats Cards) ───────────────────────────────────────────────────
 async function loadAnalytics() {
   try {
-    // Try RPC first
     const { data, error } = await supabase.rpc('get_admin_stats_detailed');
-    
-    if (error) {
-      // Fallback to basic query
-      return await loadAnalyticsFallback();
-    }
-    
-    if (data) {
-      usageData = data;
-      updateStatsDisplay();
-    }
-  } catch (err) {
-    console.error('Analytics error:', err);
-    await loadAnalyticsFallback();
+    if (error) return loadAnalyticsFallback();
+    if (data) { usageData = data; updateStatsDisplay(); }
+  } catch (_) {
+    loadAnalyticsFallback();
   }
 }
 
 async function loadAnalyticsFallback() {
   try {
     const { data: users } = await supabase.from('user_usage').select('*');
-    const { data: logs } = await supabase.from('usage_logs').select('created_at');
-    
-    if (users) {
-      const now = new Date();
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const weekStart = new Date(todayStart);
-      weekStart.setDate(weekStart.getDate() - 7);
-      const monthStart = new Date(todayStart);
-      monthStart.setMonth(monthStart.getMonth() - 1);
-      
-      const totalPrompts = users.reduce((sum, u) => sum + (u.prompts_count || 0), 0);
-      
-      // Count logs by period
-      let todayPrompts = 0, weekPrompts = 0, monthPrompts = 0;
-      if (logs) {
-        logs.forEach(log => {
-          const logDate = new Date(log.created_at);
-          if (logDate >= todayStart) todayPrompts++;
-          if (logDate >= weekStart) weekPrompts++;
-          if (logDate >= monthStart) monthPrompts++;
-        });
-      }
-      
-      // Count active users today
-      const activeToday = users.filter(u => {
-        const lastActive = new Date(u.last_reset_at);
-        return lastActive >= todayStart;
-      }).length;
-      
-      usageData = {
-        total_users: users.length,
-        pro_users: users.filter(u => u.is_pro).length,
-        active_today: activeToday,
-        prompts_today: todayPrompts,
-        prompts_week: weekPrompts,
-        prompts_month: monthPrompts,
-        prompts_all: totalPrompts
-      };
-      
-      updateStatsDisplay();
-    }
+    const { data: logs  } = await supabase.from('usage_logs').select('created_at, user_id');
+
+    if (!users) return;
+
+    const now        = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekStart  = new Date(todayStart); weekStart.setDate(weekStart.getDate() - 7);
+    const monthStart = new Date(todayStart); monthStart.setMonth(monthStart.getMonth() - 1);
+
+    let todayPrompts = 0, weekPrompts = 0, monthPrompts = 0, allPrompts = 0;
+    const activeTodaySet = new Set();
+
+    (logs || []).forEach(log => {
+      const d = new Date(log.created_at);
+      allPrompts++;
+      if (d >= monthStart) monthPrompts++;
+      if (d >= weekStart)  weekPrompts++;
+      if (d >= todayStart) { todayPrompts++; activeTodaySet.add(log.user_id); }
+    });
+
+    const proUsers   = users.filter(u => u.is_pro).length;
+    const totalUsers = users.length;
+
+    usageData = {
+      total_users:     totalUsers,
+      pro_users:       proUsers,
+      free_users:      users.filter(u => !u.is_pro).length,
+      conversion_rate: totalUsers > 0 ? ((proUsers / totalUsers) * 100).toFixed(1) : '0',
+      active_today:    activeTodaySet.size,
+      new_users_today: 0,
+      prompts_today:   todayPrompts,
+      prompts_week:    weekPrompts,
+      prompts_month:   monthPrompts,
+      prompts_all:     allPrompts,
+    };
+    updateStatsDisplay();
   } catch (err) {
     console.error('Fallback analytics error:', err);
   }
@@ -177,147 +364,252 @@ async function loadAnalyticsFallback() {
 
 function updateStatsDisplay() {
   const d = usageData;
-  
-  document.getElementById('stat-total-users').textContent = d.total_users || 0;
-  document.getElementById('stat-pro-users').textContent = d.pro_users || 0;
-  document.getElementById('stat-active-today').textContent = d.active_today || 0;
-  
-  // Update prompts based on period
-  let promptCount = 0;
+
+  document.getElementById('stat-total-users').textContent  = formatNumber(d.total_users || 0);
+  document.getElementById('stat-pro-users').textContent    = formatNumber(d.pro_users   || 0);
+  document.getElementById('stat-free-users').textContent   = formatNumber(d.free_users  || 0);
+  document.getElementById('stat-active-today').textContent = formatNumber(d.active_today    || 0);
+  document.getElementById('stat-new-today').textContent    = formatNumber(d.new_users_today || 0);
+
+  let count = 0;
+  let label = 'Prompts Today';
   switch (currentPeriod) {
-    case 'today':
-      promptCount = d.prompts_today || 0;
-      break;
-    case 'week':
-      promptCount = d.prompts_week || 0;
-      break;
-    case 'month':
-      promptCount = d.prompts_month || 0;
-      break;
-    case 'all':
-      promptCount = d.prompts_all || 0;
-      break;
+    case 'today': count = d.prompts_today  || 0; label = 'Prompts Today';  break;
+    case 'week':  count = d.prompts_week   || 0; label = 'Prompts (7d)';   break;
+    case 'month': count = d.prompts_month  || 0; label = 'Prompts (30d)';  break;
+    case 'all':   count = d.prompts_all    || 0; label = 'Prompts (All)';  break;
   }
-  
-  document.getElementById('stat-prompts-period').textContent = formatNumber(promptCount);
-  
-  // Average per user
-  const avgPerUser = d.total_users > 0 ? (promptCount / d.total_users).toFixed(1) : '0';
-  document.getElementById('stat-avg-prompts').textContent = avgPerUser;
+  document.getElementById('stat-prompts-period').textContent = formatNumber(count);
+  document.getElementById('stat-prompts-label').textContent  = label;
 }
 
-// Load Usage Chart
-async function loadUsageChart() {
-  const chartContainer = document.getElementById('usage-chart');
-  
+// ── Chart Data Loader ─────────────────────────────────────────────────────────
+async function loadChartData() {
+  const chartEl = document.getElementById('usage-chart');
+  chartEl.innerHTML = '<div class="loading"><div class="spinner"></div>Loading...</div>';
+  // Changing the chart range invalidates the prior selection
+  const hadSelection = selectedDays.size > 0;
+  selectedDays.clear();
+  hideDayDetail();
+  setUsageColLabel('today');
+  if (hadSelection) loadUsersTable(); // revert users table to today's data
+
   try {
-    // Get last 7 days of usage
-    const { data: logs, error } = await supabase
-      .from('usage_logs')
-      .select('created_at')
-      .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
-    
+    let startDate, endDate;
+
+    if (customRangeStart && customRangeEnd) {
+      startDate = new Date(customRangeStart + 'T00:00:00');
+      endDate   = new Date(customRangeEnd   + 'T23:59:59');
+    } else {
+      endDate   = new Date();
+      startDate = new Date();
+      startDate.setDate(startDate.getDate() - (chartRange - 1));
+      startDate.setHours(0, 0, 0, 0);
+    }
+
+    const { data, error } = await supabase.rpc('get_chart_data', {
+      p_start: startDate.toISOString(),
+      p_end:   endDate.toISOString(),
+    });
     if (error) throw error;
-    
-    // Group by day
-    const days = {};
-    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    
-    // Initialize last 7 days
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      const key = date.toISOString().split('T')[0];
-      days[key] = { count: 0, label: dayNames[date.getDay()] };
-    }
-    
-    // Count logs per day
-    if (logs) {
-      logs.forEach(log => {
-        const key = log.created_at.split('T')[0];
-        if (days[key]) {
-          days[key].count++;
-        }
+
+    // Build a full day-by-day array (fill missing days with zeros)
+    const dayMap = {};
+    (data || []).forEach(row => { dayMap[row.day] = row; });
+
+    chartData = [];
+    const cur = new Date(startDate);
+    cur.setHours(0, 0, 0, 0);
+    const end = new Date(endDate);
+    end.setHours(0, 0, 0, 0);
+
+    while (cur <= end) {
+      const key = cur.toISOString().split('T')[0];
+      chartData.push({
+        day:           key,
+        prompt_count:  Number(dayMap[key]?.prompt_count  || 0),
+        unique_users:  Number(dayMap[key]?.unique_users  || 0),
       });
+      cur.setDate(cur.getDate() + 1);
     }
-    
-    // Find max for scaling
-    const maxCount = Math.max(...Object.values(days).map(d => d.count), 1);
-    
-    // Build chart HTML
-    chartContainer.innerHTML = Object.entries(days).map(([date, data]) => {
-      const height = Math.max((data.count / maxCount) * 160, 4);
-      return `
-        <div class="chart-bar-wrapper">
-          <div class="chart-bar" style="height: ${height}px;">
-            <span class="chart-bar-value">${data.count}</span>
-          </div>
-          <span class="chart-bar-label">${data.label}</span>
-        </div>
-      `;
-    }).join('');
-    
+
+    renderChart(chartData);
   } catch (err) {
     console.error('Chart error:', err);
-    chartContainer.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 40px;">Unable to load chart data</div>';
+    chartEl.innerHTML =
+      '<div style="text-align:center;color:var(--text-muted);padding:40px;">Unable to load chart data</div>';
   }
 }
 
-// Load Users Table
-async function loadUsersTable() {
+// ── Chart Renderer ────────────────────────────────────────────────────────────
+function renderChart(data) {
+  const chartEl = document.getElementById('usage-chart');
+  if (!data || data.length === 0) {
+    chartEl.innerHTML =
+      '<div style="text-align:center;color:var(--text-muted);padding:40px;">No data for this range</div>';
+    return;
+  }
+
+  const getValue = row =>
+    chartMetric === 'users' ? (row.unique_users || 0) : (row.prompt_count || 0);
+  const maxVal = Math.max(...data.map(getValue), 1);
+
+  // Fixed-width bars so date labels line up perfectly
+  const barWidth =
+    data.length <= 14 ? 56 :
+    data.length <= 30 ? 44 :
+    data.length <= 60 ? 32 :
+    24;
+  const gap =
+    data.length <= 14 ? 12 :
+    data.length <= 30 ?  8 :
+    4;
+  const labelStep =
+    data.length <= 30 ? 1 :
+    data.length <= 60 ? 2 :
+    7;
+
+  chartEl.style.gap = `${gap}px`;
+  const todayKey = new Date().toISOString().split('T')[0];
+
+  chartEl.innerHTML = data.map((row, i) => {
+    const val      = getValue(row);
+    const height   = Math.max((val / maxVal) * 160, val > 0 ? 5 : 2);
+    const date     = new Date(row.day + 'T00:00:00');
+    const label    = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const isToday  = row.day === todayKey;
+    const isSelected = selectedDays.has(row.day);
+    const showLbl  = (i === 0) || (i === data.length - 1) || (i % labelStep === 0);
+
+    return `
+      <div class="chart-bar-wrapper" style="width:${barWidth}px;" data-index="${i}">
+        <div class="chart-bar${isToday ? ' today-bar' : ''}${isSelected ? ' selected' : ''}"
+             style="height:${height}px;" data-index="${i}" data-day="${row.day}">
+          <span class="chart-bar-value">${val}</span>
+        </div>
+        <span class="chart-bar-label" ${showLbl ? '' : 'style="visibility:hidden"'}>${label}</span>
+      </div>`;
+  }).join('');
+
+  // Bar click → toggle multi-select
+  chartEl.querySelectorAll('.chart-bar').forEach(bar => {
+    bar.addEventListener('click', () => {
+      const day = bar.dataset.day;
+      if (selectedDays.has(day)) {
+        selectedDays.delete(day);
+        bar.classList.remove('selected');
+      } else {
+        selectedDays.add(day);
+        bar.classList.add('selected');
+      }
+      onSelectionChange();
+    });
+  });
+
+  // Scroll the rightmost (most recent) bar into view so "today" is always visible by default
+  // Without this, the chart starts scrolled to the leftmost (oldest) date.
+  requestAnimationFrame(() => {
+    const wrapper = chartEl.closest('.chart-scroll-wrapper');
+    if (wrapper) wrapper.scrollLeft = wrapper.scrollWidth;
+  });
+}
+
+// Called whenever selectedDays changes — updates panel + reloads users table
+function onSelectionChange() {
+  if (selectedDays.size === 0) {
+    hideDayDetail();
+    setUsageColLabel('today');
+    loadUsersTable(); // default = today
+    return;
+  }
+  updateDayDetailPanel();
+  setUsageColLabel(selectedDays.size === 1 ? '1 day' : `${selectedDays.size} days`);
+  loadUsersTable(Array.from(selectedDays).sort());
+}
+
+function setUsageColLabel(text) {
+  const el = document.getElementById('usage-col-sub');
+  if (el) el.textContent = text;
+}
+
+// ── Users Table ───────────────────────────────────────────────────────────────
+// `days` = array of yyyy-mm-dd strings to count usage over.
+//          null/undefined → backend defaults to today (UTC)
+async function loadUsersTable(days = null) {
   const tbody = document.getElementById('users-table-body');
-  
+  const reqId = ++usersTableReqId;
+
   try {
-    // Try RPC function for full user data
+    const { data, error } = await supabase.rpc('get_users_table_data', {
+      p_days: days && days.length ? days : null,
+    });
+
+    // A newer request superseded this one — drop the result
+    if (reqId !== usersTableReqId) return;
+
     let users;
-    const { data, error } = await supabase.rpc('get_all_users_for_admin');
-    
     if (error) {
-      // Fallback to direct query
-      const { data: fallbackData } = await supabase
-        .from('user_usage')
-        .select('*')
-        .order('last_reset_at', { ascending: false });
-      users = fallbackData;
+      console.warn('get_users_table_data failed, falling back:', error);
+      const { data: fb } = await supabase.rpc('get_all_users_for_admin');
+      if (reqId !== usersTableReqId) return;
+      users = (fb || []).map(u => ({
+        ...u,
+        range_prompts:    u.prompts_count || 0,
+        lifetime_prompts: u.total_prompts || 0,
+        last_active_at:   u.last_reset_at,
+      }));
     } else {
-      users = data;
+      users = data || [];
     }
-    
+
     if (!users || users.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">No users found</td></tr>';
+      tbody.innerHTML =
+        '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted);">No users found</td></tr>';
       return;
     }
-    
+
     allUsers = users;
-    renderUsersTable(users);
-    
+    applyFilters();
+
+    // If selection is active, refresh the day-detail panel's "unique users" count
+    if (selectedDays.size > 0) updateDayDetailPanel();
   } catch (err) {
+    if (reqId !== usersTableReqId) return;
     console.error('Users table error:', err);
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--red);">Error loading users</td></tr>';
+    tbody.innerHTML =
+      '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--red);">Error loading users</td></tr>';
   }
 }
 
 function renderUsersTable(users) {
   const tbody = document.getElementById('users-table-body');
-  const limit = 5; // Free user limit
+  const FREE_LIMIT = 5;
+
+  if (users.length === 0) {
+    tbody.innerHTML =
+      '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-muted);">No users match the current filter</td></tr>';
+    return;
+  }
 
   tbody.innerHTML = users.map(user => {
-    const isPro = user.is_pro || false;
-    const email = user.email || 'Unknown';
-    const weekPrompts = user.prompts_count || 0;
-    const totalPrompts = user.total_prompts || weekPrompts;
-    const lastActive = formatRelativeDate(user.last_reset_at);
-    const initial = email.charAt(0).toUpperCase();
-    const userId = user.user_id;
+    const isPro        = user.is_pro || false;
+    const email        = user.email || 'Unknown';
+    // Usage = prompts in selected range (today by default), counted from usage_logs
+    const rangeUsage   = Number(user.range_prompts || 0);
+    // Lifetime = total prompts ever, counted from usage_logs
+    const lifetime     = Number(user.lifetime_prompts || 0);
+    const initial      = email.charAt(0).toUpperCase();
+    const userId       = user.user_id;
 
-    // Pro expiry info
-    const proExpiresAt = user.pro_expires_at;
-    const proGrantedBy = user.pro_granted_by;
-    const expiryInfo = getExpiryInfo(isPro, proExpiresAt, proGrantedBy);
+    const expiryInfo = getExpiryInfo(isPro, user.pro_expires_at, user.pro_granted_by);
+    // Bar width: free users capped at 5/day; pro users uncapped (visualize against day's max or fixed)
+    const usagePct   = isPro
+      ? Math.min((rangeUsage / Math.max(rangeUsage, 10)) * 100, 100)
+      : Math.min((rangeUsage / FREE_LIMIT) * 100, 100);
+    const isHigh     = !isPro && rangeUsage >= FREE_LIMIT;
 
-    // Usage percentage for bar
-    const usagePercent = isPro ? 30 : Math.min((weekPrompts / limit) * 100, 100);
-    const isHighUsage = !isPro && weekPrompts >= limit;
+    const joinedStr     = user.created_at     ? formatRelativeDate(user.created_at)     : '—';
+    const lastActiveStr = user.last_active_at ? formatRelativeDate(user.last_active_at) : '—';
 
     return `
       <tr data-user-id="${userId}">
@@ -326,7 +618,7 @@ function renderUsersTable(users) {
             <div class="user-avatar">${initial}</div>
             <div class="user-info">
               <span class="user-email">${escapeHtml(email)}</span>
-              <span class="user-id">${userId.substring(0, 8)}...</span>
+              <span class="user-id">${userId.substring(0, 8)}…</span>
             </div>
           </div>
         </td>
@@ -334,69 +626,53 @@ function renderUsersTable(users) {
         <td><span class="expiry-info ${expiryInfo.class}">${expiryInfo.text}</span></td>
         <td>
           <div class="usage-bar-container">
-            <span>${weekPrompts}${isPro ? '' : `/${limit}`}</span>
+            <span>${rangeUsage}${isPro ? '' : `/${FREE_LIMIT}`}</span>
             <div class="usage-bar">
-              <div class="usage-bar-fill ${isHighUsage ? 'high' : ''}" style="width: ${usagePercent}%"></div>
+              <div class="usage-bar-fill ${isHigh ? 'high' : ''}" style="width:${usagePct}%"></div>
             </div>
           </div>
         </td>
-        <td>${formatNumber(totalPrompts)}</td>
-        <td>${lastActive}</td>
+        <td>${formatNumber(lifetime)}</td>
+        <td>${joinedStr}</td>
+        <td>${lastActiveStr}</td>
         <td>
-          <button class="toggle-pro-btn ${isPro ? 'is-pro' : ''}" data-user-id="${userId}" data-is-pro="${isPro}" data-expires="${proExpiresAt || ''}" data-granted-by="${proGrantedBy || ''}">
+          <button class="toggle-pro-btn ${isPro ? 'is-pro' : ''}"
+            data-user-id="${userId}"
+            data-is-pro="${isPro}"
+            data-expires="${user.pro_expires_at || ''}"
+            data-granted-by="${user.pro_granted_by || ''}">
             ${isPro ? 'Remove Pro' : 'Make Pro'}
           </button>
         </td>
-      </tr>
-    `;
+      </tr>`;
   }).join('');
 
-  // Add event listeners
   tbody.querySelectorAll('.toggle-pro-btn').forEach(btn => {
     btn.addEventListener('click', handleProToggle);
   });
 }
 
-// Get expiry info for display
+// ── Pro Expiry Info ───────────────────────────────────────────────────────────
 function getExpiryInfo(isPro, expiresAt, grantedBy) {
-  if (!isPro) {
-    return { text: '—', class: '' };
-  }
+  if (!isPro) return { text: '—', class: '' };
+  if (grantedBy) return { text: 'Never (Founder)', class: 'founder' };
+  if (!expiresAt) return { text: 'Never', class: 'founder' };
 
-  // Founder-granted (never expires)
-  if (grantedBy) {
-    return { text: 'Never (Founder)', class: 'founder' };
-  }
+  const expiry   = new Date(expiresAt);
+  const diffDays = Math.ceil((expiry - new Date()) / 86400000);
 
-  // No expiry set (legacy or unlimited)
-  if (!expiresAt) {
-    return { text: 'Never', class: 'founder' };
-  }
-
-  // Check expiry
-  const expiry = new Date(expiresAt);
-  const now = new Date();
-  const diffDays = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
-
-  if (diffDays < 0) {
-    return { text: 'Expired', class: 'expired' };
-  }
-
-  if (diffDays <= 7) {
-    return { text: `${diffDays}d left`, class: 'warning' };
-  }
-
+  if (diffDays < 0)  return { text: 'Expired',        class: 'expired' };
+  if (diffDays <= 7) return { text: `${diffDays}d left`, class: 'warning' };
   return { text: `${diffDays}d left`, class: '' };
 }
 
-// Handle Pro Status Toggle
+// ── Pro Status Toggle ─────────────────────────────────────────────────────────
 async function handleProToggle(e) {
-  const btn = e.target;
-  const userId = btn.dataset.userId;
+  const btn          = e.target;
+  const userId       = btn.dataset.userId;
   const currentlyPro = btn.dataset.isPro === 'true';
-  const newStatus = !currentlyPro;
+  const newStatus    = !currentlyPro;
 
-  // If granting pro, ask about expiry
   let expiresInDays = null;
   if (newStatus) {
     const choice = prompt(
@@ -405,55 +681,39 @@ async function handleProToggle(e) {
       'Or leave empty for founder-granted (never expires)',
       ''
     );
-
-    if (choice === null) {
-      return; // User cancelled
-    }
-
+    if (choice === null) return;
     if (choice.trim() !== '') {
       const days = parseInt(choice.trim(), 10);
-      if (isNaN(days) || days <= 0) {
-        showNotification('Invalid number of days');
-        return;
-      }
+      if (isNaN(days) || days <= 0) { showNotification('Invalid number of days'); return; }
       expiresInDays = days;
     }
-    // null = founder-granted (never expires)
   }
 
   btn.disabled = true;
-  btn.textContent = '...';
+  btn.textContent = '…';
 
   try {
-    // Try RPC with expiry parameter
     const { error } = await supabase.rpc('toggle_user_pro_status', {
       target_user_id: userId,
       new_pro_status: newStatus,
-      expires_in_days: expiresInDays
+      expires_in_days: expiresInDays,
     });
 
     if (error) {
-      console.error('RPC error:', error);
-      // Fallback to direct update (without expiry support)
-      const { error: updateError } = await supabase
+      const { error: ue } = await supabase
         .from('user_usage')
         .update({ is_pro: newStatus })
         .eq('user_id', userId);
-
-      if (updateError) throw updateError;
+      if (ue) throw ue;
     }
 
-    // Refresh the entire table to get updated expiry info
-    await loadUsersTable();
+    await Promise.all([loadUsersTable(), loadAnalytics()]);
 
-    // Refresh analytics
-    await loadAnalytics();
-
-    const msg = newStatus
-      ? (expiresInDays ? `Granted ${expiresInDays}-day Pro` : 'Granted permanent Pro')
-      : 'Removed Pro status';
-    showNotification(msg);
-
+    showNotification(
+      newStatus
+        ? (expiresInDays ? `Granted ${expiresInDays}-day Pro` : 'Granted permanent Pro')
+        : 'Removed Pro status'
+    );
   } catch (err) {
     console.error('Toggle error:', err);
     showNotification('Failed to update user');
@@ -463,51 +723,32 @@ async function handleProToggle(e) {
   }
 }
 
-// --- AI Roles ---
-const roleGrid = document.getElementById('role-grid');
-const customPromptSection = document.getElementById('custom-prompt-section');
+// ── AI Roles ──────────────────────────────────────────────────────────────────
+const roleGrid             = document.getElementById('role-grid');
+const customPromptSection  = document.getElementById('custom-prompt-section');
 const customPromptTextarea = document.getElementById('custom-prompt');
 
 function initRoles() {
-  // Load saved roles
   chrome.storage.sync.get(['enabledRoles', 'customRolePrompt'], (result) => {
     const enabledRoles = result.enabledRoles || ['picker'];
 
-    // Apply enabled state to cards
     roleGrid.querySelectorAll('.role-card').forEach(card => {
       const role = card.dataset.role;
-      if (enabledRoles.includes(role)) {
-        card.classList.add('enabled');
-      } else {
-        card.classList.remove('enabled');
-      }
+      card.classList.toggle('enabled', enabledRoles.includes(role));
     });
 
-    // Show custom prompt section if custom is enabled
-    if (enabledRoles.includes('custom')) {
-      customPromptSection.classList.add('visible');
-    }
-
-    // Load custom prompt
-    if (result.customRolePrompt) {
-      customPromptTextarea.value = result.customRolePrompt;
-    }
+    if (enabledRoles.includes('custom')) customPromptSection.classList.add('visible');
+    if (result.customRolePrompt) customPromptTextarea.value = result.customRolePrompt;
   });
 
-  // Click handlers for role cards
   roleGrid.addEventListener('click', (e) => {
     const card = e.target.closest('.role-card');
     if (!card) return;
-
     card.classList.toggle('enabled');
 
-    // Collect all enabled roles
     const enabledRoles = [];
-    roleGrid.querySelectorAll('.role-card.enabled').forEach(c => {
-      enabledRoles.push(c.dataset.role);
-    });
+    roleGrid.querySelectorAll('.role-card.enabled').forEach(c => enabledRoles.push(c.dataset.role));
 
-    // If active role was disabled, switch to first enabled
     chrome.storage.sync.get(['activeRole'], (result) => {
       const updates = { enabledRoles };
       if (result.activeRole && !enabledRoles.includes(result.activeRole)) {
@@ -516,15 +757,12 @@ function initRoles() {
       chrome.storage.sync.set(updates);
     });
 
-    // Toggle custom prompt section
     if (card.dataset.role === 'custom') {
       customPromptSection.classList.toggle('visible', card.classList.contains('enabled'));
     }
-
     showNotification('Roles updated');
   });
 
-  // Save custom prompt on change (debounced)
   let customPromptTimer;
   customPromptTextarea.addEventListener('input', () => {
     clearTimeout(customPromptTimer);
@@ -537,23 +775,20 @@ function initRoles() {
 
 initRoles();
 
-// Logout
+// ── Logout ────────────────────────────────────────────────────────────────────
 logoutBtn?.addEventListener('click', async () => {
   try {
     await supabase.auth.signOut();
     accountEmailEl.textContent = 'Not signed in';
     adminTab.classList.add('hidden');
-    
-    // Switch to settings tab
     document.querySelector('.tab[data-tab="settings"]').click();
-    
     showNotification('Signed out');
-  } catch (err) {
+  } catch (_) {
     showNotification('Failed to sign out');
   }
 });
 
-// Settings Form
+// ── Settings Form ─────────────────────────────────────────────────────────────
 settingsForm.addEventListener('submit', (e) => {
   e.preventDefault();
   chrome.storage.sync.set({ overlayPosition: overlayPositionSelect.value }, () => {
@@ -561,44 +796,39 @@ settingsForm.addEventListener('submit', (e) => {
   });
 });
 
-// Helper Functions
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function formatNumber(num) {
-  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-  if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-  return num.toString();
+  if (num >= 1_000_000) return (num / 1_000_000).toFixed(1) + 'M';
+  if (num >= 1_000)     return (num / 1_000).toFixed(1) + 'K';
+  return String(num);
 }
 
 function formatRelativeDate(dateString) {
   if (!dateString) return 'Never';
-  
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now - date;
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-  
-  if (diffMins < 1) return 'Just now';
+  const date     = new Date(dateString);
+  const now      = new Date();
+  const diffMs   = now - date;
+  const diffMins = Math.floor(diffMs / 60_000);
+  const diffHrs  = Math.floor(diffMs / 3_600_000);
+  const diffDays = Math.floor(diffMs / 86_400_000);
+
+  if (diffMins < 1)  return 'Just now';
   if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffHrs  < 24) return `${diffHrs}h ago`;
   if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays}d ago`;
-  
+  if (diffDays < 7)  return `${diffDays}d ago`;
   return date.toLocaleDateString();
 }
 
 function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
+  const d = document.createElement('div');
+  d.textContent = text;
+  return d.innerHTML;
 }
 
 function showNotification(message) {
   const notificationText = notification.querySelector('.notification-text');
   notificationText.textContent = message;
   notification.classList.add('show');
-  
-  setTimeout(() => {
-    notification.classList.remove('show');
-  }, 3000);
+  setTimeout(() => notification.classList.remove('show'), 3000);
 }

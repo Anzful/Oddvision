@@ -1055,6 +1055,267 @@
       margin: 20px 0;
     }
 
+    /* ── Grid 4 ── */
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+    @media (max-width: 900px) { .grid-4 { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 500px) { .grid-4 { grid-template-columns: 1fr; } }
+
+    /* ── Analytics Controls ── */
+    .analytics-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .range-btn {
+      padding: 6px 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .range-btn:hover { color: var(--text-dim); border-color: var(--border-glow); }
+    .range-btn.active {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: var(--accent-bright);
+    }
+    .date-range-inputs {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .date-range-inputs.hidden { display: none; }
+    .date-input {
+      padding: 6px 10px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+    }
+    .date-input::-webkit-calendar-picker-indicator { filter: invert(0.5); cursor: pointer; }
+    .apply-range-btn {
+      padding: 6px 14px;
+      background: var(--accent);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-family: 'Sora', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .apply-range-btn:hover { background: var(--accent-bright); }
+
+    /* ── Metric Toggle ── */
+    .metric-toggle {
+      display: flex;
+      gap: 2px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 8px;
+      padding: 3px;
+      margin-left: auto;
+    }
+    .metric-btn {
+      padding: 5px 12px;
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      color: var(--text-muted);
+      font-family: 'Sora', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .metric-btn.active { background: var(--accent); color: white; }
+
+    /* ── Scrollable Chart ── */
+    .chart-scroll-wrapper {
+      overflow-x: auto;
+      overflow-y: visible;
+      padding-bottom: 8px;
+    }
+    .chart-scroll-wrapper::-webkit-scrollbar { height: 4px; }
+    .chart-scroll-wrapper::-webkit-scrollbar-track { background: transparent; }
+    .chart-scroll-wrapper::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    /* Override default fixed-height chart-container */
+    .chart-scroll-wrapper .chart-container {
+      height: auto;
+      min-height: 220px;
+      width: max-content;
+      min-width: 100%;
+      padding-top: 44px;
+      padding-bottom: 0;
+    }
+    /* Fixed-width bar wrappers so date labels line up perfectly */
+    .chart-scroll-wrapper .chart-bar-wrapper {
+      flex: 0 0 auto;
+      gap: 8px;
+    }
+    .chart-scroll-wrapper .chart-bar-label {
+      white-space: nowrap;
+      width: 100%;
+      text-align: center;
+      overflow: visible;
+    }
+    .chart-bar.today-bar {
+      background: linear-gradient(180deg, var(--cyan) 0%, #0891b2 100%);
+      box-shadow: 0 0 20px var(--cyan-glow);
+    }
+    .chart-bar.selected {
+      filter: brightness(1.35);
+      box-shadow: 0 0 50px var(--accent-glow);
+      outline: 2px solid var(--accent-bright);
+      outline-offset: 2px;
+    }
+
+    /* ── Day Detail Panel ── */
+    .day-detail-panel {
+      margin-top: 20px;
+      padding: 20px 24px;
+      background: rgba(99,102,241,0.06);
+      border: 1px solid var(--border-glow);
+      border-radius: 16px;
+      display: none;
+    }
+    .day-detail-panel.visible {
+      display: block;
+      animation: fadeSlideDown 0.25s var(--ease-out-expo);
+    }
+    @keyframes fadeSlideDown {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .day-detail-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .day-detail-date {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      color: var(--accent-bright);
+      font-size: 13px;
+    }
+    .close-detail-btn {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      cursor: pointer;
+      font-family: 'Sora', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1;
+      padding: 6px 12px;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+    .close-detail-btn:hover {
+      color: var(--red);
+      border-color: var(--red);
+      background: rgba(239,68,68,0.08);
+    }
+
+    /* ── Sortable header subtitle (e.g. "today" / "3 selected") ── */
+    .th-sub {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      color: var(--accent-bright);
+      font-weight: 500;
+      text-transform: lowercase;
+      letter-spacing: 0;
+      margin-left: 2px;
+      opacity: 0.75;
+    }
+    .day-detail-stats {
+      display: flex;
+      gap: 40px;
+      flex-wrap: wrap;
+    }
+    .day-detail-stat { display: flex; flex-direction: column; gap: 4px; }
+    .day-detail-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1;
+    }
+    .day-detail-value.accent { color: var(--accent-bright); }
+    .day-detail-value.cyan   { color: var(--cyan); }
+    .day-detail-value.green  { color: var(--green); }
+    .day-detail-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+
+    /* ── Status Filter Buttons ── */
+    .status-filter { display: flex; gap: 4px; }
+    .filter-btn {
+      padding: 6px 12px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .filter-btn:hover { color: var(--text-dim); }
+    .filter-btn.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent-bright); }
+    .filter-btn.pro.active  { background: rgba(34,211,238,0.1); border-color: var(--cyan); color: var(--cyan); }
+    .filter-btn.free.active { background: rgba(245,158,11,0.1); border-color: var(--orange); color: var(--orange); }
+
+    /* ── Sortable Table Headers ── */
+    .users-table th.sortable {
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+      padding-right: 26px;
+      transition: color 0.2s;
+    }
+    .users-table th.sortable:hover { color: var(--text-dim); }
+    .sort-icon {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      opacity: 0.3;
+    }
+    .sort-icon::after { content: '↕'; }
+    .users-table th.sort-asc  .sort-icon { opacity: 1; color: var(--accent-bright); }
+    .users-table th.sort-asc  .sort-icon::after { content: '↑'; }
+    .users-table th.sort-desc .sort-icon { opacity: 1; color: var(--accent-bright); }
+    .users-table th.sort-desc .sort-icon::after { content: '↓'; }
+
+    /* ── Extra Stat Colors ── */
+    .stat-card.purple:hover { border-color: var(--purple-glow); }
+    .stat-card.purple:hover::before { background: linear-gradient(90deg, transparent, var(--purple), transparent); }
+    .stat-value.purple { color: var(--purple); }
+
     /* Notification */
     .notification {
       position: fixed;
@@ -1490,13 +1751,14 @@
 
     <!-- Admin Tab - Mission Control -->
     <div class="tab-content" id="tab-admin">
-      <!-- Overview Stats -->
+
+      <!-- ── System Overview ── -->
       <div class="card section-spacing">
         <div class="card-header">
           <span class="card-title">
             <div class="card-title-icon purple">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
               </svg>
             </div>
             System Overview
@@ -1509,7 +1771,8 @@
           </div>
         </div>
         <div class="card-body">
-          <div class="grid-5" id="stats-grid">
+          <!-- Row 1: User stats -->
+          <div class="grid-3" style="margin-bottom: 14px;">
             <div class="stat-card accent">
               <div class="stat-value accent" id="stat-total-users">—</div>
               <div class="stat-label">Total Users</div>
@@ -1518,86 +1781,143 @@
               <div class="stat-value cyan" id="stat-pro-users">—</div>
               <div class="stat-label">Pro Users</div>
             </div>
+            <div class="stat-card">
+              <div class="stat-value" id="stat-free-users">—</div>
+              <div class="stat-label">Free Users</div>
+            </div>
+          </div>
+          <!-- Row 2: Activity stats (period-sensitive) -->
+          <div class="grid-3">
             <div class="stat-card green">
               <div class="stat-value green" id="stat-active-today">—</div>
               <div class="stat-label">Active Today</div>
             </div>
+            <div class="stat-card">
+              <div class="stat-value" id="stat-new-today">—</div>
+              <div class="stat-label">New Today</div>
+            </div>
             <div class="stat-card orange">
               <div class="stat-value orange" id="stat-prompts-period">—</div>
-              <div class="stat-label">Prompts</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-value" id="stat-avg-prompts">—</div>
-              <div class="stat-label">Avg / User</div>
+              <div class="stat-label" id="stat-prompts-label">Prompts Today</div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Usage Chart -->
+      <!-- ── Usage Analytics ── -->
       <div class="card section-spacing">
         <div class="card-header">
           <span class="card-title">
             <div class="card-title-icon green">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M3 3v18h18" />
-                <path d="m19 9-5 5-4-4-3 3" />
+                <path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>
               </svg>
             </div>
-            Usage Trend
+            Usage Analytics
           </span>
-          <span style="font-size: 12px; color: var(--text-muted);">Last 7 days</span>
+          <!-- Metric toggle: Prompts vs Unique Users -->
+          <div class="metric-toggle">
+            <button class="metric-btn active" data-metric="prompts">Prompts</button>
+            <button class="metric-btn" data-metric="users">Unique Users</button>
+          </div>
         </div>
         <div class="card-body">
-          <div class="chart-container" id="usage-chart">
-            <div class="loading">
-              <div class="spinner"></div>
-              Loading chart data...
+          <!-- Date range controls -->
+          <div class="analytics-controls">
+            <button class="range-btn" data-days="7">7D</button>
+            <button class="range-btn" data-days="14">14D</button>
+            <button class="range-btn active" data-days="30">30D</button>
+            <button class="range-btn" data-days="90">90D</button>
+            <button class="range-btn" data-days="custom">Custom</button>
+            <div class="date-range-inputs hidden" id="custom-range-inputs">
+              <input type="date" class="date-input" id="range-start">
+              <span style="color:var(--text-muted);font-size:12px;">→</span>
+              <input type="date" class="date-input" id="range-end">
+              <button class="apply-range-btn" id="apply-range">Apply</button>
+            </div>
+          </div>
+          <!-- Scrollable chart -->
+          <div class="chart-scroll-wrapper">
+            <div class="chart-container" id="usage-chart">
+              <div class="loading">
+                <div class="spinner"></div>
+                Loading chart data...
+              </div>
+            </div>
+          </div>
+          <!-- Day detail panel (appears on bar click; supports multi-select) -->
+          <div class="day-detail-panel" id="day-detail-panel">
+            <div class="day-detail-header">
+              <span class="day-detail-date" id="day-detail-date">—</span>
+              <button class="close-detail-btn" id="close-day-detail" title="Clear selection">Clear ✕</button>
+            </div>
+            <div class="day-detail-stats">
+              <div class="day-detail-stat">
+                <span class="day-detail-value accent" id="day-detail-prompts">—</span>
+                <span class="day-detail-label">Prompts</span>
+              </div>
+              <div class="day-detail-stat">
+                <span class="day-detail-value cyan" id="day-detail-users">—</span>
+                <span class="day-detail-label">Unique Users</span>
+              </div>
+              <div class="day-detail-stat">
+                <span class="day-detail-value green" id="day-detail-avg">—</span>
+                <span class="day-detail-label">Avg / User</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Admin Controls -->
-      <!-- Users Table -->
+      <!-- ── User Management ── -->
       <div class="card">
         <div class="card-header">
           <span class="card-title">
             <div class="card-title-icon cyan">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
               </svg>
             </div>
             User Management
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-muted);font-weight:400;margin-left:4px;" id="user-count-label"></span>
           </span>
-          <div class="search-box">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.3-4.3" />
-            </svg>
-            <input type="text" id="user-search" placeholder="Search by email...">
+          <div style="display:flex;gap:10px;align-items:center;">
+            <!-- Status filter -->
+            <div class="status-filter">
+              <button class="filter-btn active" data-filter="all">All</button>
+              <button class="filter-btn pro"    data-filter="pro">Pro</button>
+              <button class="filter-btn free"   data-filter="free">Free</button>
+            </div>
+            <!-- Search -->
+            <div class="search-box">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+              </svg>
+              <input type="text" id="user-search" placeholder="Search by email...">
+            </div>
           </div>
         </div>
-        <div class="card-body" style="padding: 0;">
+        <div class="card-body" style="padding:0;">
           <div class="table-wrapper">
             <table class="users-table">
               <thead>
                 <tr>
-                  <th>User</th>
+                  <th class="sortable" data-col="email">User <span class="sort-icon"></span></th>
                   <th>Status</th>
                   <th>Pro Expires</th>
-                  <th>Weekly Usage</th>
-                  <th>Lifetime</th>
-                  <th>Last Active</th>
+                  <th class="sortable" data-col="range_prompts">Usage <span class="th-sub" id="usage-col-sub">today</span> <span class="sort-icon"></span></th>
+                  <th class="sortable" data-col="lifetime_prompts">Lifetime <span class="sort-icon"></span></th>
+                  <th class="sortable" data-col="created_at">Joined <span class="sort-icon"></span></th>
+                  <th class="sortable" data-col="last_active_at">Last Active <span class="sort-icon"></span></th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody id="users-table-body">
                 <tr>
-                  <td colspan="7">
+                  <td colspan="8">
                     <div class="loading">
                       <div class="spinner"></div>
                       Loading users...
