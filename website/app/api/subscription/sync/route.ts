@@ -91,6 +91,7 @@ export async function POST(req: Request) {
         user_id: userId,
         is_pro: true,
         pro_expires_at: proExpiresAt.toISOString(),
+        paypal_subscription_id: subscriptionId,   // store so renewal webhooks can find this user
     };
 
     if (nextBillingDate) {

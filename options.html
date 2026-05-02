@@ -745,20 +745,24 @@
     .chart-bar {
       width: 100%;
       max-width: 48px;
-      background: linear-gradient(180deg, var(--accent-bright) 0%, var(--accent) 50%, var(--purple) 100%);
       border-radius: 8px 8px 4px 4px;
       position: relative;
       transition: all 0.5s var(--ease-out-expo);
       cursor: pointer;
       box-shadow: 0 0 20px var(--accent-glow);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
 
     .chart-bar::before {
       content: '';
       position: absolute;
       inset: 0;
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, transparent 50%);
+      background: linear-gradient(180deg, rgba(255,255,255,0.18) 0%, transparent 50%);
       border-radius: inherit;
+      pointer-events: none;
+      z-index: 1;
     }
 
     .chart-bar:hover {
@@ -766,6 +770,33 @@
       box-shadow: 0 0 40px var(--accent-glow);
       transform: scaleY(1.02);
       transform-origin: bottom;
+    }
+
+    /* Model color segments inside each bar */
+    .bar-seg { min-height: 2px; }
+
+    /* Model legend */
+    .model-legend {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 2px 2px;
+      flex-wrap: wrap;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-dim);
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+    }
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      flex-shrink: 0;
     }
 
     .chart-bar-label {
@@ -1173,8 +1204,7 @@
       overflow: visible;
     }
     .chart-bar.today-bar {
-      background: linear-gradient(180deg, var(--cyan) 0%, #0891b2 100%);
-      box-shadow: 0 0 20px var(--cyan-glow);
+      box-shadow: 0 0 24px var(--cyan-glow), 0 0 0 1px rgba(34,211,238,0.45);
     }
     .chart-bar.selected {
       filter: brightness(1.35);
@@ -1845,6 +1875,13 @@
               </div>
             </div>
           </div>
+          <!-- Model legend -->
+          <div class="model-legend">
+            <div class="legend-item"><span class="legend-dot" style="background:#4c1d95;"></span>Flash 3.0</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#7c3aed;"></span>Flash 2.5</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#a78bfa;"></span>Flash 2.0</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#374151;"></span>Other</div>
+          </div>
           <!-- Day detail panel (appears on bar click; supports multi-select) -->
           <div class="day-detail-panel" id="day-detail-panel">
             <div class="day-detail-header">
@@ -1859,10 +1896,6 @@
               <div class="day-detail-stat">
                 <span class="day-detail-value cyan" id="day-detail-users">—</span>
                 <span class="day-detail-label">Unique Users</span>
-              </div>
-              <div class="day-detail-stat">
-                <span class="day-detail-value green" id="day-detail-avg">—</span>
-                <span class="day-detail-label">Avg / User</span>
               </div>
             </div>
           </div>

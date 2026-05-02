@@ -71,6 +71,16 @@ function setupTabs() {
       tab.classList.add('active');
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
       document.getElementById(`tab-${tabId}`).classList.add('active');
+
+      // Re-scroll chart to today (rightmost bar) when admin tab becomes visible
+      if (tabId === 'admin') {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            const wrapper = document.querySelector('.chart-scroll-wrapper');
+            if (wrapper) wrapper.scrollLeft = wrapper.scrollWidth;
+          });
+        });
+      }
     });
   });
 }
@@ -95,12 +105,12 @@ function setupAnalyticsControls() {
   const rangeStartEl   = document.getElementById('range-start');
   const rangeEndEl     = document.getElementById('range-end');
 
-  // Pre-fill custom inputs with a sensible default
+  // Pre-fill custom inputs with a sensible default (local/Tbilisi date)
   const today = new Date();
-  rangeEndEl.value = today.toISOString().split('T')[0];
+  rangeEndEl.value = localDateStr(today);
   const ago30 = new Date(today);
   ago30.setDate(ago30.getDate() - 29);
-  rangeStartEl.value = ago30.toISOString().split('T')[0];
+  rangeStartEl.value = localDateStr(ago30);
 
   rangeBtns.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -284,12 +294,9 @@ function updateDayDetailPanel() {
 
   document.getElementById('day-detail-prompts').textContent = formatNumber(sumPrompts);
 
-  // Unique users + avg are filled in after table loads (we count distinct users with range_prompts > 0)
-  // For now, show "—" if table not loaded yet.
+  // Unique users = count of users with any usage in the selected range
   const usersWithUsage = allUsers.filter(u => (u.range_prompts || 0) > 0).length;
   document.getElementById('day-detail-users').textContent = formatNumber(usersWithUsage);
-  const avg = usersWithUsage > 0 ? (sumPrompts / usersWithUsage).toFixed(1) : '0';
-  document.getElementById('day-detail-avg').textContent = avg;
 
   panel.classList.add('visible');
 }
@@ -414,6 +421,7 @@ async function loadChartData() {
     if (error) throw error;
 
     // Build a full day-by-day array (fill missing days with zeros)
+    // Use local (Tbilisi) date keys to match the RPC's Asia/Tbilisi grouping
     const dayMap = {};
     (data || []).forEach(row => { dayMap[row.day] = row; });
 
@@ -424,11 +432,15 @@ async function loadChartData() {
     end.setHours(0, 0, 0, 0);
 
     while (cur <= end) {
-      const key = cur.toISOString().split('T')[0];
+      const key = localDateStr(cur);
       chartData.push({
         day:           key,
         prompt_count:  Number(dayMap[key]?.prompt_count  || 0),
         unique_users:  Number(dayMap[key]?.unique_users  || 0),
+        flash30_count: Number(dayMap[key]?.flash30_count || 0),
+        flash25_count: Number(dayMap[key]?.flash25_count || 0),
+        flash20_count: Number(dayMap[key]?.flash20_count || 0),
+        other_count:   Number(dayMap[key]?.other_count   || 0),
       });
       cur.setDate(cur.getDate() + 1);
     }
@@ -442,6 +454,40 @@ async function loadChartData() {
 }
 
 // ── Chart Renderer ────────────────────────────────────────────────────────────
+
+// Build stacked model-color segments inside a bar
+function buildModelSegments(row) {
+  const f30   = row.flash30_count || 0;
+  const f25   = row.flash25_count || 0;
+  const f20   = row.flash20_count || 0;
+  const other = row.other_count   || 0;
+  const total = f30 + f25 + f20 + other;
+
+  if (total === 0) {
+    // Fallback: single neutral bar
+    return `<div class="bar-seg" style="flex:1;background:var(--accent);"></div>`;
+  }
+
+  // Rendered top→bottom in DOM (flex-direction:column), so top=first in list
+  // Visual stacking: Other (gray) at top, Flash 3.0 (darkest) at bottom
+  const segs = [
+    { count: other, color: '#374151' },  // top
+    { count: f20,   color: '#a78bfa' },
+    { count: f25,   color: '#7c3aed' },
+    { count: f30,   color: '#4c1d95' },  // bottom (darkest)
+  ].filter(s => s.count > 0);
+
+  return segs.map((s, i) => {
+    const isTop    = i === 0;
+    const isBottom = i === segs.length - 1;
+    const radius   = isTop && isBottom ? '8px 8px 4px 4px'
+                   : isTop             ? '8px 8px 0 0'
+                   : isBottom          ? '0 0 4px 4px'
+                   : '0';
+    return `<div class="bar-seg" style="flex:${s.count};background:${s.color};border-radius:${radius};"></div>`;
+  }).join('');
+}
+
 function renderChart(data) {
   const chartEl = document.getElementById('usage-chart');
   if (!data || data.length === 0) {
@@ -470,21 +516,26 @@ function renderChart(data) {
     7;
 
   chartEl.style.gap = `${gap}px`;
-  const todayKey = new Date().toISOString().split('T')[0];
+  // Use local (Tbilisi) date to match the RPC's Asia/Tbilisi grouping
+  const todayKey = localDateStr(new Date());
 
   chartEl.innerHTML = data.map((row, i) => {
-    const val      = getValue(row);
-    const height   = Math.max((val / maxVal) * 160, val > 0 ? 5 : 2);
-    const date     = new Date(row.day + 'T00:00:00');
-    const label    = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    const isToday  = row.day === todayKey;
+    const val        = getValue(row);
+    const height     = Math.max((val / maxVal) * 160, val > 0 ? 5 : 2);
+    const date       = new Date(row.day + 'T00:00:00');
+    const label      = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const isToday    = row.day === todayKey;
     const isSelected = selectedDays.has(row.day);
-    const showLbl  = (i === 0) || (i === data.length - 1) || (i % labelStep === 0);
+    const showLbl    = (i === 0) || (i === data.length - 1) || (i % labelStep === 0);
+
+    const segments = chartMetric === 'prompts' ? buildModelSegments(row) :
+      `<div class="bar-seg" style="flex:1;background:var(--accent);"></div>`;
 
     return `
       <div class="chart-bar-wrapper" style="width:${barWidth}px;" data-index="${i}">
         <div class="chart-bar${isToday ? ' today-bar' : ''}${isSelected ? ' selected' : ''}"
              style="height:${height}px;" data-index="${i}" data-day="${row.day}">
+          ${segments}
           <span class="chart-bar-value">${val}</span>
         </div>
         <span class="chart-bar-label" ${showLbl ? '' : 'style="visibility:hidden"'}>${label}</span>
@@ -506,11 +557,13 @@ function renderChart(data) {
     });
   });
 
-  // Scroll the rightmost (most recent) bar into view so "today" is always visible by default
-  // Without this, the chart starts scrolled to the leftmost (oldest) date.
+  // Scroll today's bar (rightmost) into view.
+  // Double rAF ensures layout is fully painted before measuring scrollWidth.
   requestAnimationFrame(() => {
-    const wrapper = chartEl.closest('.chart-scroll-wrapper');
-    if (wrapper) wrapper.scrollLeft = wrapper.scrollWidth;
+    requestAnimationFrame(() => {
+      const wrapper = chartEl.closest('.chart-scroll-wrapper');
+      if (wrapper) wrapper.scrollLeft = wrapper.scrollWidth;
+    });
   });
 }
 
@@ -797,6 +850,14 @@ settingsForm.addEventListener('submit', (e) => {
 });
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+// Returns a yyyy-mm-dd string in the browser's LOCAL timezone (matches Asia/Tbilisi grouping in RPC)
+function localDateStr(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 function formatNumber(num) {
   if (num >= 1_000_000) return (num / 1_000_000).toFixed(1) + 'M';
   if (num >= 1_000)     return (num / 1_000).toFixed(1) + 'K';
