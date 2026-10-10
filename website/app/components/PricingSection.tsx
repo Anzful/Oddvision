@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { CheckoutEventNames, initializePaddle, type Paddle } from "@paddle/paddle-js";
+import { PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
 import { supabase } from "../../lib/supabaseClient";
 import { User } from "@supabase/supabase-js";
 import Link from "next/link";
@@ -11,7 +12,16 @@ import { PADDLE_PUBLIC, isPaddleConfigured } from "../../lib/paddle-config";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const PRICE_LABEL = "$7.69";
+const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ?? "";
+const PAYPAL_PLAN_ID = process.env.NEXT_PUBLIC_PAYPAL_PLAN_ID ?? "";
+
+// Paddle as soon as its keys are set; until then the PayPal bridge; otherwise neither.
+const PROVIDER: 'paddle' | 'paypal' | 'none' = isPaddleConfigured()
+  ? 'paddle'
+  : PAYPAL_CLIENT_ID && PAYPAL_PLAN_ID ? 'paypal' : 'none';
+// The PayPal label must match the PayPal plan's price.
+const PRICE_LABEL = PROVIDER === 'paypal' ? process.env.NEXT_PUBLIC_PAYPAL_PRICE_LABEL || "$7.50" : "$7.69";
+const PERIOD_LABEL = PROVIDER === 'paypal' ? "per month · cancel anytime" : "per month · tax included · cancel anytime";
 
 type UsageRow = {
   is_pro?: boolean;
@@ -21,6 +31,7 @@ type UsageRow = {
   subscription_status?: string | null;
   subscription_cancel_at?: string | null;
   paddle_subscription_id?: string | null;
+  paypal_subscription_id?: string | null;
 };
 
 // Use direct REST API call instead of Supabase client to avoid hanging during session recovery
@@ -134,20 +145,20 @@ export default function PricingSection() {
     };
   }, []);
 
-  // After payment, ask our server to verify the transaction with Paddle and
-  // turn Pro on. Paddle can take a few seconds to create the subscription, so
-  // poll briefly; the webhook will finish the job if this times out.
-  const confirmPurchase = useCallback(async (transactionId: string) => {
+  // After payment, ask our server to verify the purchase with the provider and
+  // turn Pro on. The provider can take a few seconds to finish, so poll
+  // briefly; the webhook will finish the job if this times out.
+  const confirmPurchase = useCallback(async (endpoint: string, payload: Record<string, string>) => {
     setActivating(true);
     setNotice({ kind: 'info', text: 'Payment received — activating Pro…' });
 
     for (let attempt = 0; attempt < 15; attempt++) {
       try {
         const token = await getAccessToken();
-        const res = await fetch('/api/paddle/sync', {
+        const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ transactionId }),
+          body: JSON.stringify(payload),
         });
         const result = await res.json().catch(() => ({}));
         if (res.ok && result.isPro) {
@@ -178,10 +189,7 @@ export default function PricingSection() {
   useEffect(() => { confirmRef.current = confirmPurchase; }, [confirmPurchase]);
 
   useEffect(() => {
-    if (!isPaddleConfigured()) {
-      console.error('[PricingSection] Paddle is not configured (NEXT_PUBLIC_PADDLE_CLIENT_TOKEN / NEXT_PUBLIC_PADDLE_PRICE_ID)');
-      return;
-    }
+    if (PROVIDER !== 'paddle') return;
     let cancelled = false;
     initializePaddle({
       environment: PADDLE_PUBLIC.environment,
@@ -189,7 +197,7 @@ export default function PricingSection() {
       checkout: { settings: { displayMode: 'overlay', theme: 'dark', allowLogout: false } },
       eventCallback: (event) => {
         if (event.name === CheckoutEventNames.CHECKOUT_COMPLETED && event.data?.transaction_id) {
-          confirmRef.current(event.data.transaction_id);
+          confirmRef.current('/api/paddle/sync', { transactionId: event.data.transaction_id });
         }
       },
     })
@@ -236,6 +244,7 @@ export default function PricingSection() {
   const status = subscriptionData?.subscription_status;
   const cancelAt = subscriptionData?.subscription_cancel_at;
   const hasPaddleSubscription = !!subscriptionData?.paddle_subscription_id;
+  const hasPayPalSubscription = !hasPaddleSubscription && !!subscriptionData?.paypal_subscription_id;
 
   return (
     <section id="pricing" className="section">
@@ -258,7 +267,7 @@ export default function PricingSection() {
               <div className="pricing-price">
                 <span className="pricing-amount">{PRICE_LABEL}</span>
               </div>
-              <p className="pricing-period">per month · tax included · cancel anytime</p>
+              <p className="pricing-period">{PERIOD_LABEL}</p>
 
               <ul className="pricing-features">
                 {features.map((feature, index) => (
@@ -319,9 +328,41 @@ export default function PricingSection() {
                       {portalLoading ? 'Opening…' : status === 'past_due' ? 'Update payment method' : 'Manage subscription'}
                     </button>
                   )}
+                  {hasPayPalSubscription && (
+                    <a
+                      href="https://www.paypal.com/myaccount/autopay/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-secondary"
+                      style={{ width: '100%', marginTop: '16px' }}
+                    >
+                      Manage in your PayPal account
+                    </a>
+                  )}
                 </div>
-              ) : user && !isPaddleConfigured() ? (
-                // Deployed before Paddle keys are set (e.g. while Paddle reviews the domain).
+              ) : user && PROVIDER === 'paypal' ? (
+                // Temporary bridge while Paddle reviews the domain.
+                <div style={{ marginTop: '8px' }}>
+                  <PayPalScriptProvider options={{ clientId: PAYPAL_CLIENT_ID, vault: true, intent: "subscription" }}>
+                    <PayPalButtons
+                      style={{ shape: "rect", color: "gold", layout: "vertical", label: "subscribe" }}
+                      createSubscription={(_data, actions) =>
+                        actions.subscription.create({ plan_id: PAYPAL_PLAN_ID, custom_id: user.id })
+                      }
+                      onApprove={async (data) => {
+                        if (data.subscriptionID) {
+                          await confirmPurchase('/api/paypal/sync', { subscriptionId: data.subscriptionID });
+                        }
+                      }}
+                      onError={(err) => {
+                        console.error('[PricingSection] PayPal error', err);
+                        setNotice({ kind: 'error', text: 'PayPal checkout failed. Please try again or email oddvisionai@gmail.com.' });
+                      }}
+                    />
+                  </PayPalScriptProvider>
+                </div>
+              ) : user && PROVIDER === 'none' ? (
+                // Deployed before any checkout is configured.
                 <div className="pricing-login-prompt">
                   <p>Checkout is opening soon.</p>
                   <a href="mailto:oddvisionai@gmail.com" className="btn btn-secondary" style={{ width: '100%' }}>
