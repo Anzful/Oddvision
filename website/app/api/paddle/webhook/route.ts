@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { verifyPaddleSignature } from "@/lib/paddle-webhook";
+import { getPaddleWebhookCidrs, ipInCidrs, verifyPaddleSignature } from "@/lib/paddle-webhook";
 import { getPaddle } from "@/lib/paddle-server";
 import { syncSubscriptionToUser } from "@/lib/subscription-sync";
 
@@ -30,6 +30,22 @@ export async function POST(req: Request) {
     console.error("[paddle/webhook] PADDLE_WEBHOOK_SECRET is not set");
     return NextResponse.json({ error: "Not configured" }, { status: 500 });
   }
+
+  // Only accept deliveries from Paddle's published IPs. Enforced on Vercel,
+  // which sets x-real-ip itself so it can't be spoofed; local tunnels skip it.
+  if (process.env.VERCEL) {
+    const cidrs = await getPaddleWebhookCidrs();
+    if (!cidrs) {
+      // Can't tell who is calling; a 5xx makes Paddle retry later.
+      return NextResponse.json({ error: "IP allowlist unavailable" }, { status: 503 });
+    }
+    const ip = req.headers.get("x-real-ip") ?? req.headers.get("x-forwarded-for")?.split(",")[0] ?? "";
+    if (!ipInCidrs(ip, cidrs)) {
+      console.warn(`[paddle/webhook] rejected delivery from ${ip || "unknown IP"}`);
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
+
   if (!verifyPaddleSignature(rawBody, req.headers.get("paddle-signature"), secret)) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }

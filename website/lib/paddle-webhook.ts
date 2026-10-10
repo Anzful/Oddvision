@@ -36,3 +36,48 @@ export function verifyPaddleSignature(
     return given.length === expected.length && timingSafeEqual(given, expected);
   });
 }
+
+/** True when `ip` (IPv4, or IPv4-mapped IPv6) falls inside one of the IPv4 CIDRs. */
+export function ipInCidrs(ip: string, cidrs: string[]): boolean {
+  const toInt = (addr: string) => {
+    const parts = addr.split(".");
+    if (parts.length !== 4 || !parts.every((p) => /^\d{1,3}$/.test(p) && Number(p) <= 255)) return null;
+    return parts.reduce((n, p) => n * 256 + Number(p), 0);
+  };
+  const addr = toInt(ip.trim().replace(/^::ffff:/i, ""));
+  if (addr === null) return false;
+  return cidrs.some((cidr) => {
+    const [base, bitsText = "32"] = cidr.split("/");
+    const start = toInt(base);
+    const bits = Number(bitsText);
+    if (start === null || !Number.isInteger(bits) || bits < 0 || bits > 32) return false;
+    const size = 2 ** (32 - bits);
+    return Math.floor(addr / size) === Math.floor(start / size);
+  });
+}
+
+const IPS_TTL_MS = 60 * 60 * 1000;
+let ipsCache: { cidrs: string[]; fetchedAt: number } | null = null;
+
+/**
+ * Paddle's current webhook source IPs, from its `/ips` endpoint (the source of
+ * truth, so the list is never hard-coded). The environment follows the API key
+ * prefix, like the API client. Cached for an hour; a failed refresh keeps the
+ * last good list, and `null` means no list could be loaded at all.
+ */
+export async function getPaddleWebhookCidrs(): Promise<string[] | null> {
+  if (ipsCache && Date.now() - ipsCache.fetchedAt < IPS_TTL_MS) return ipsCache.cidrs;
+  const host = process.env.PADDLE_API_KEY?.startsWith("pdl_live_")
+    ? "https://api.paddle.com"
+    : "https://sandbox-api.paddle.com";
+  try {
+    const res = await fetch(`${host}/ips`, { cache: "no-store", signal: AbortSignal.timeout(5000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const cidrs = (await res.json())?.data?.ipv4_cidrs;
+    if (!Array.isArray(cidrs) || cidrs.length === 0) throw new Error("no ipv4_cidrs in response");
+    ipsCache = { cidrs, fetchedAt: Date.now() };
+  } catch (err) {
+    console.error("[paddle/webhook] could not load Paddle IPs", err);
+  }
+  return ipsCache?.cidrs ?? null;
+}

@@ -30,6 +30,7 @@ type UsageRow = {
   next_billing_date?: string | null;
   subscription_status?: string | null;
   subscription_cancel_at?: string | null;
+  paddle_customer_id?: string | null;
   paddle_subscription_id?: string | null;
   paypal_subscription_id?: string | null;
 };
@@ -194,6 +195,7 @@ export default function PricingSection() {
     initializePaddle({
       environment: PADDLE_PUBLIC.environment,
       token: PADDLE_PUBLIC.clientToken,
+      pwCustomer: {},
       checkout: { settings: { displayMode: 'overlay', theme: 'dark', allowLogout: false } },
       eventCallback: (event) => {
         if (event.name === CheckoutEventNames.CHECKOUT_COMPLETED && event.data?.transaction_id) {
@@ -205,6 +207,12 @@ export default function PricingSection() {
       .catch((err) => console.error('[PricingSection] Paddle failed to load', err));
     return () => { cancelled = true; };
   }, []);
+
+  // Paddle Retain identifies signed-in customers by their Paddle customer id.
+  const paddleCustomerId = subscriptionData?.paddle_customer_id ?? null;
+  useEffect(() => {
+    paddle?.Update({ pwCustomer: paddleCustomerId ? { id: paddleCustomerId } : {} });
+  }, [paddle, paddleCustomerId]);
 
   const openCheckout = () => {
     if (!paddle || !user) return;
