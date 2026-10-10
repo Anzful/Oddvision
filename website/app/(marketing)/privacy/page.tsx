@@ -5,7 +5,7 @@ export default function Privacy() {
     <div className="privacy-page">
       <div className="privacy-container">
         <h1>Privacy Policy</h1>
-        <span className="privacy-date">Last updated: April 16, 2026</span>
+        <span className="privacy-date">Last updated: October 10, 2026</span>
 
         <section className="privacy-section">
           <h2>Introduction</h2>
@@ -70,8 +70,8 @@ export default function Privacy() {
               <a href="https://ai.google.dev/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a>)
             </li>
             <li>
-              <strong>PayPal:</strong> Payment processing for Pro subscriptions. We do not store credit card details. (
-              <a href="https://www.paypal.com/us/legalhub/privacy-full" target="_blank" rel="noopener noreferrer">Privacy Policy</a>)
+              <strong>Paddle:</strong> Our reseller and Merchant of Record, which processes Pro subscription payments (card, Apple Pay, Google Pay, PayPal) and taxes. We never see or store your payment details; we only store your Paddle customer and subscription IDs and your subscription status. (
+              <a href="https://www.paddle.com/legal/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>)
             </li>
           </ul>
         </section>

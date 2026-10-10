@@ -1,0 +1,74 @@
+import { NextResponse } from "next/server";
+import { verifyPaddleSignature } from "@/lib/paddle-webhook";
+import { getPaddle } from "@/lib/paddle-server";
+import { syncSubscriptionToUser } from "@/lib/subscription-sync";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+type PaddleWebhookEvent = {
+  event_id: string;
+  event_type: string;
+  occurred_at: string;
+  data: { id?: string; subscription_id?: string | null };
+};
+
+/**
+ * Paddle notification destination. Subscribe it to:
+ * subscription.created/updated/activated/canceled/past_due/paused/resumed/trialing
+ * and transaction.completed.
+ *
+ * Every event is treated as "this subscription changed": we re-fetch the
+ * subscription from the Paddle API and sync its current state, so duplicate or
+ * out-of-order deliveries can't leave a user with the wrong access.
+ */
+export async function POST(req: Request) {
+  const rawBody = await req.text();
+  const secret = process.env.PADDLE_WEBHOOK_SECRET;
+
+  if (!secret) {
+    console.error("[paddle/webhook] PADDLE_WEBHOOK_SECRET is not set");
+    return NextResponse.json({ error: "Not configured" }, { status: 500 });
+  }
+  if (!verifyPaddleSignature(rawBody, req.headers.get("paddle-signature"), secret)) {
+    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+  }
+
+  let event: PaddleWebhookEvent;
+  try {
+    event = JSON.parse(rawBody);
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const subscriptionId = event.event_type.startsWith("subscription.")
+    ? event.data.id
+    : event.event_type === "transaction.completed"
+      ? event.data.subscription_id
+      : null;
+
+  if (!subscriptionId) {
+    return NextResponse.json({ received: true, ignored: event.event_type });
+  }
+
+  try {
+    const subscription = await getPaddle().subscriptions.get(subscriptionId);
+    const result = await syncSubscriptionToUser(subscription);
+    if (result.status === "unlinked") {
+      console.warn(`[paddle/webhook] ${event.event_type} ${subscriptionId}: no user_id in custom_data`);
+    } else {
+      console.log(`[paddle/webhook] ${event.event_type} ${subscriptionId} -> ${result.status} (${result.userId})`);
+    }
+    return NextResponse.json({ received: true, result: result.status });
+  } catch (err) {
+    // The subscription doesn't exist (e.g. simulator demo data): retrying can't help.
+    const code = (err as { code?: string })?.code;
+    if (code === "entity_not_found" || code === "not_found" || code === "invalid_url") {
+      console.warn(`[paddle/webhook] ${event.event_type} ${subscriptionId}: subscription not found (${code})`);
+      return NextResponse.json({ received: true, result: "not_found" });
+    }
+    // Anything else may be transient; a 5xx makes Paddle retry with backoff.
+    console.error(`[paddle/webhook] failed to process ${event.event_id}`, err);
+    return NextResponse.json({ error: "Processing failed" }, { status: 500 });
+  }
+}

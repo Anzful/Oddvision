@@ -18,6 +18,8 @@ export default function Footer() {
             <span className="footer-name">Oddvision</span>
           </div>
           <div className="footer-links">
+            <Link href="/terms" className="footer-link">Terms</Link>
+            <Link href="/refund" className="footer-link">Refunds</Link>
             <Link href="/privacy" className="footer-link">Privacy</Link>
             <a href="mailto:oddvisionai@gmail.com" className="footer-link">Support</a>
             <span className="footer-tagline">Stealth AI for the modern web</span>

@@ -1,37 +1,66 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { getPaddle } from "@/lib/paddle-server";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { syncSubscriptionToUser } from "@/lib/subscription-sync";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+/**
+ * Daily safety net. For Pro users whose `pro_expires_at` has passed:
+ *  - Paddle subscribers are re-checked against the Paddle API (renewals extend
+ *    them, cancellations downgrade them) in case a webhook was missed.
+ *  - Everyone else (no Paddle subscription, not founder-granted) is downgraded.
+ */
 export async function GET(req: Request) {
-  // Verify the request is from Vercel Cron (or has the correct secret)
-  const authHeader = req.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (req.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-
-  // Downgrade all expired pro users (skip founder-granted ones)
-  const { data, error } = await supabaseAdmin
+  const db = getSupabaseAdmin();
+  const { data: expired, error } = await db
     .from("user_usage")
-    .update({ is_pro: false })
+    .select("user_id, paddle_subscription_id")
     .eq("is_pro", true)
     .is("pro_granted_by", null)
     .not("pro_expires_at", "is", null)
-    .lte("pro_expires_at", new Date().toISOString())
-    .select("user_id");
+    .lte("pro_expires_at", new Date().toISOString());
 
   if (error) {
-    console.error("Downgrade cron error:", error);
+    console.error("[cron] query error", error);
     return NextResponse.json({ error: "Database error" }, { status: 500 });
   }
 
-  const count = data?.length ?? 0;
-  if (count > 0) {
-    console.log(`Downgraded ${count} expired pro users:`, data.map(u => u.user_id));
+  const resynced: string[] = [];
+  const downgraded: string[] = [];
+  const failed: string[] = [];
+
+  for (const row of expired ?? []) {
+    if (row.paddle_subscription_id) {
+      try {
+        const subscription = await getPaddle().subscriptions.get(row.paddle_subscription_id);
+        await syncSubscriptionToUser(subscription);
+        resynced.push(row.user_id);
+      } catch (err) {
+        // Keep access for now rather than wrongly removing it; retry tomorrow.
+        console.error(`[cron] Paddle re-check failed for ${row.user_id}`, err);
+        failed.push(row.user_id);
+      }
+      continue;
+    }
+
+    const { error: updateError } = await db
+      .from("user_usage")
+      .update({ is_pro: false })
+      .eq("user_id", row.user_id);
+    if (updateError) failed.push(row.user_id);
+    else downgraded.push(row.user_id);
   }
 
-  return NextResponse.json({ downgraded: count });
+  if (expired?.length) console.log("[cron]", { resynced, downgraded, failed });
+  return NextResponse.json({
+    resynced: resynced.length,
+    downgraded: downgraded.length,
+    failed: failed.length,
+  });
 }
