@@ -11,7 +11,7 @@ import { PADDLE_PUBLIC, isPaddleConfigured } from "../../lib/paddle-config";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const PRICE_LABEL = "$7.69";
+const PRICE_LABEL = "$8";
 
 type UsageRow = {
   is_pro?: boolean;
@@ -266,7 +266,7 @@ export default function PricingSection() {
               <div className="pricing-price">
                 <span className="pricing-amount">{PRICE_LABEL}</span>
               </div>
-              <p className="pricing-period">per month · tax included · cancel anytime</p>
+              <p className="pricing-period">per month + tax · cancel anytime</p>
 
               <ul className="pricing-features">
                 {features.map((feature, index) => (

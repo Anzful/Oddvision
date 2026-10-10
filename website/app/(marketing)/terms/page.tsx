@@ -43,7 +43,8 @@ export default function Terms() {
           <ul>
             <li><strong>Free:</strong> a limited number of AI analyses per day, at no cost.</li>
             <li>
-              <strong>Pro:</strong> {LEGAL.price}, including applicable taxes. Pro removes the daily
+              <strong>Pro:</strong> {LEGAL.price}, plus applicable taxes (such as VAT or sales
+              tax), which are calculated at checkout based on your location. Pro removes the daily
               limit and includes priority support.
             </li>
             <li>
