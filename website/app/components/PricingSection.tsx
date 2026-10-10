@@ -320,6 +320,14 @@ export default function PricingSection() {
                     </button>
                   )}
                 </div>
+              ) : user && !isPaddleConfigured() ? (
+                // Deployed before Paddle keys are set (e.g. while Paddle reviews the domain).
+                <div className="pricing-login-prompt">
+                  <p>Checkout is opening soon.</p>
+                  <a href="mailto:oddvisionai@gmail.com" className="btn btn-secondary" style={{ width: '100%' }}>
+                    Email us to get Pro now
+                  </a>
+                </div>
               ) : user ? (
                 <div style={{ marginTop: '8px' }}>
                   <button
