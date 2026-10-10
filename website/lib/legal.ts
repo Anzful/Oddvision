@@ -9,6 +9,6 @@ export const LEGAL = {
   email: "oddvisionai@gmail.com",
   website: "https://oddvision.xyz",
   lastUpdated: "October 11, 2026",
-  price: "$8 USD per month",
+  price: "$8.00 USD per month",
   refundDays: 14,
 };
