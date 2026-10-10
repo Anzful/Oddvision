@@ -11,3 +11,6 @@ package-lock.json
 .DS_Store
 Thumbs.db
 
+# Promo videos (Remotion project + renders)
+oddvision-promo-videos/
+
