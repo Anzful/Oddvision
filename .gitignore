@@ -14,3 +14,6 @@ Thumbs.db
 # Promo videos (Remotion project + renders)
 oddvision-promo-videos/
 
+
+# Claude Code worktrees (local working copies, never commit)
+.claude/worktrees/
