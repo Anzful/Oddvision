@@ -29,18 +29,12 @@ export default function Terms() {
           <h2>2. Payments and our reseller</h2>
           <p>
             Our order process is conducted by our online reseller Paddle.com. Paddle.com is the
-            Merchant of Record for all orders placed through Paddle checkout. Paddle provides all
-            customer service inquiries and handles returns for those orders. When you buy{" "}
-            {LEGAL.brand} Pro through Paddle, you are buying from Paddle, and your purchase is also
-            subject to{" "}
+            Merchant of Record for all our orders. Paddle provides all customer service inquiries and
+            handles returns. When you buy {LEGAL.brand} Pro, you are buying from Paddle, and your
+            purchase is also subject to{" "}
             <a href="https://www.paddle.com/legal/checkout-buyer-terms" target="_blank" rel="noopener noreferrer">
               Paddle&apos;s Buyer Terms
             </a>.
-          </p>
-          <p>
-            While we move our checkout to Paddle, some Pro subscriptions are sold by {LEGAL.operator}{" "}
-            directly and billed through PayPal. For those, we are the seller, PayPal processes the
-            payment, and you can cancel any time in your PayPal account or by emailing us.
           </p>
         </section>
 

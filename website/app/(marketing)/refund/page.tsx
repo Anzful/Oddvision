@@ -55,15 +55,6 @@ export default function Refund() {
         </section>
 
         <section className="privacy-section">
-          <h2>Subscriptions billed through PayPal</h2>
-          <p>
-            The same {LEGAL.refundDays}-day guarantee applies. Email{" "}
-            <a href={`mailto:${LEGAL.email}`}>{LEGAL.email}</a> and we refund the payment through PayPal
-            ourselves. You can also cancel any time in your PayPal account under automatic payments.
-          </p>
-        </section>
-
-        <section className="privacy-section">
           <h2>Your statutory rights</h2>
           <p>
             This policy does not affect any rights you have under the consumer laws of your country.

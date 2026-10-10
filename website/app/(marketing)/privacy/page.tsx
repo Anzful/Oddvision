@@ -73,10 +73,6 @@ export default function Privacy() {
               <strong>Paddle:</strong> Our reseller and Merchant of Record, which processes Pro subscription payments (card, Apple Pay, Google Pay, PayPal) and taxes. We never see or store your payment details; we only store your Paddle customer and subscription IDs and your subscription status. (
               <a href="https://www.paddle.com/legal/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>)
             </li>
-            <li>
-              <strong>PayPal:</strong> Processes Pro subscriptions billed through PayPal. We never see your payment details; we store only the PayPal subscription ID and status. (
-              <a href="https://www.paypal.com/us/legalhub/privacy-full" target="_blank" rel="noopener noreferrer">Privacy Policy</a>)
-            </li>
           </ul>
         </section>
 
