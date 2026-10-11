@@ -1,4 +1,11 @@
 import React from "react";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Privacy Policy",
+  description: "What data Oddvision collects, what it never stores, and the services it uses.",
+  alternates: { canonical: "/privacy" },
+};
 
 export default function Privacy() {
   return (

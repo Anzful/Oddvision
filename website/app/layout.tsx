@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import React from "react";
+import { SITE } from "@/lib/site";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -22,8 +23,37 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Oddvision — Stealth AI Overlay",
-  description: "Oddvision — a stealth AI overlay for any webpage. Capture content, analyze instantly, stay under the radar.",
+  metadataBase: new URL(SITE.url),
+  title: { default: SITE.title, template: `%s | ${SITE.name}` },
+  description: SITE.description,
+  applicationName: SITE.name,
+  keywords: [
+    "AI Chrome extension",
+    "AI overlay",
+    "AI assistant for any webpage",
+    "screenshot to AI",
+    "summarize webpage",
+    "explain this page",
+    "AI study helper",
+    "Gemini Chrome extension",
+  ],
+  authors: [{ name: SITE.name, url: SITE.url }],
+  creator: SITE.name,
+  publisher: SITE.name,
+  category: "productivity",
+  openGraph: {
+    type: "website",
+    siteName: SITE.name,
+    title: SITE.title,
+    description: SITE.description,
+    locale: "en_US",
+  },
+  twitter: { card: "summary_large_image", title: SITE.title, description: SITE.description },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1, "max-video-preview": -1 },
+  },
 };
 
 export default function RootLayout({

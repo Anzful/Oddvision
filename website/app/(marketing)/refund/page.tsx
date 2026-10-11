@@ -4,7 +4,9 @@ import type { Metadata } from "next";
 import { LEGAL } from "@/lib/legal";
 
 export const metadata: Metadata = {
-  title: "Refund Policy — Oddvision",
+  title: "Refund Policy",
+  description: "Oddvision Pro's 14-day money-back guarantee and how to request a refund.",
+  alternates: { canonical: "/refund" },
 };
 
 export default function Refund() {

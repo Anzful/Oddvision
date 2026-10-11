@@ -4,7 +4,9 @@ import type { Metadata } from "next";
 import { LEGAL } from "@/lib/legal";
 
 export const metadata: Metadata = {
-  title: "Terms of Service — Oddvision",
+  title: "Terms of Service",
+  description: "The terms for using Oddvision and Oddvision Pro.",
+  alternates: { canonical: "/terms" },
 };
 
 export default function Terms() {

@@ -18,6 +18,10 @@ export default function Footer() {
             <span className="footer-name">Oddvision</span>
           </div>
           <div className="footer-links">
+            <Link href="/how-it-works" className="footer-link">How it works</Link>
+            <Link href="/use-cases" className="footer-link">Use cases</Link>
+            <Link href="/compare/oddvision-vs-chatgpt" className="footer-link">Vs. ChatGPT</Link>
+            <Link href="/faq" className="footer-link">FAQ</Link>
             <Link href="/terms" className="footer-link">Terms</Link>
             <Link href="/refund" className="footer-link">Refunds</Link>
             <Link href="/privacy" className="footer-link">Privacy</Link>

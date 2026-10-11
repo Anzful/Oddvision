@@ -2607,3 +2607,149 @@ body {
 }
 
 
+
+/* ── Content pages (guides, use cases, comparisons, FAQ) ── */
+.content-page .privacy-container h1 {
+  margin-bottom: 16px;
+}
+
+.content-breadcrumb {
+  font-size: 14px;
+  color: var(--white-muted);
+  margin-bottom: 20px;
+}
+
+.content-breadcrumb a {
+  color: var(--white-dim);
+  text-decoration: none;
+}
+
+.content-breadcrumb a:hover {
+  color: var(--white);
+}
+
+.content-lead {
+  font-size: 19px;
+  line-height: 1.7;
+  color: var(--white-dim);
+  margin-bottom: 8px;
+}
+
+.content-kbd {
+  display: inline-block;
+  padding: 2px 8px;
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: var(--black);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.85em;
+  color: var(--white);
+}
+
+.content-cta {
+  margin-top: 56px;
+  padding: 24px 28px;
+  border: 1px solid rgba(124, 58, 237, 0.35);
+  border-radius: 18px;
+  background: var(--accent-dim);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.content-cta strong {
+  display: block;
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+
+.content-cta span {
+  color: var(--white-dim);
+  font-size: 15px;
+}
+
+.content-related {
+  margin-top: 40px;
+}
+
+.content-related h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.content-related ul {
+  list-style: none;
+}
+
+.content-related li {
+  padding: 6px 0;
+}
+
+.content-related a {
+  color: var(--accent-2);
+  text-decoration: none;
+}
+
+.content-related a:hover {
+  text-decoration: underline;
+}
+
+.content-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.content-card {
+  display: block;
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--black-light);
+  text-decoration: none;
+  color: var(--white);
+  transition: border-color 0.2s ease;
+}
+
+.content-card:hover {
+  border-color: rgba(124, 58, 237, 0.5);
+}
+
+.content-card strong {
+  display: block;
+  font-size: 17px;
+  margin-bottom: 8px;
+}
+
+.content-card span {
+  color: var(--white-dim);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.content-faq details {
+  border-bottom: 1px solid var(--border);
+  padding: 18px 0;
+}
+
+.content-faq summary {
+  cursor: pointer;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.content-faq details p {
+  margin-top: 12px;
+}
+
+@media (max-width: 768px) {
+  .content-cta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

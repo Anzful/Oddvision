@@ -17,10 +17,17 @@ import {
 } from "@tabler/icons-react";
 import Reveal from "../components/Reveal";
 import PricingSection from "../components/PricingSection";
+import JsonLd from "../components/JsonLd";
+import type { Metadata } from "next";
+import { graph, organizationLd, pageMetadata, softwareLd, websiteLd } from "@/lib/seo";
+
+export const metadata: Metadata = pageMetadata("/", { type: "website" });
 
 export default function Home() {
   return (
     <>
+      <JsonLd data={graph(organizationLd(), websiteLd(), softwareLd())} />
+
       {/* Background Elements */}
       <div className="bg-grid" />
       <div className="bg-gradient" />
