@@ -3,6 +3,8 @@ import { page, ROLES, SHORTCUTS, SITE } from "./site";
 
 const abs = (path: string) => new URL(path, SITE.url).toString();
 
+const OG_ALT = "Oddvision — AI overlay Chrome extension. Alt+1 capture, Alt+2 analyze, Alt+3 hide, Alt+4 snip.";
+
 /** Title, description, canonical URL and social cards for one page. */
 export function pageMetadata(path: string, opts: { type?: "website" | "article" } = {}): Metadata {
   const p = page(path);
@@ -18,8 +20,10 @@ export function pageMetadata(path: string, opts: { type?: "website" | "article" 
       title: p.title,
       description: p.description,
       locale: "en_US",
+      // A page-level openGraph replaces the parent's, so the card must be set here too.
+      images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: OG_ALT }],
     },
-    twitter: { card: "summary_large_image", title: p.title, description: p.description },
+    twitter: { card: "summary_large_image", title: p.title, description: p.description, images: ["/twitter-image"] },
   };
 }
 
