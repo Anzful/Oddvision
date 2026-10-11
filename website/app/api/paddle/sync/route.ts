@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getPaddle } from "@/lib/paddle-server";
-import { getUserFromRequest } from "@/lib/supabase-admin";
+import { getSupabaseAdmin, getUserFromRequest } from "@/lib/supabase-admin";
 import { syncSubscriptionToUser, userIdFromCustomData } from "@/lib/subscription-sync";
 
 export const runtime = "nodejs";
@@ -37,10 +37,19 @@ export async function POST(req: Request) {
     }
 
     const subscription = await paddle.subscriptions.get(transaction.subscriptionId);
+    if (userIdFromCustomData(subscription.customData) !== user.id || subscription.customerId !== transaction.customerId) {
+      return NextResponse.json({ error: "Subscription does not belong to this account" }, { status: 403 });
+    }
     const result = await syncSubscriptionToUser(subscription);
+    if (result.status === "unlinked" || result.userId !== user.id) {
+      return NextResponse.json({ error: "Could not link the purchase" }, { status: 409 });
+    }
+    const { data: usage, error } = await getSupabaseAdmin().from("user_usage")
+      .select("is_pro, pro_expires_at").eq("user_id", user.id).maybeSingle();
+    if (error) throw error;
     return NextResponse.json({
       pending: false,
-      isPro: result.status === "synced" ? result.isPro : false,
+      isPro: !!usage?.is_pro && (!usage.pro_expires_at || new Date(usage.pro_expires_at) > new Date()),
       status: subscription.status,
     });
   } catch (err) {

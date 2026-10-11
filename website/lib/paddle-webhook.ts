@@ -31,7 +31,7 @@ export function verifyPaddleSignature(
 
   const expected = createHmac("sha256", secret).update(`${ts}:${rawBody}`).digest();
   return signatures.some((sig) => {
-    if (!/^[0-9a-f]+$/i.test(sig)) return false;
+    if (!/^[0-9a-f]{64}$/i.test(sig)) return false;
     const given = Buffer.from(sig, "hex");
     return given.length === expected.length && timingSafeEqual(given, expected);
   });
@@ -67,7 +67,7 @@ let ipsCache: { cidrs: string[]; fetchedAt: number } | null = null;
  */
 export async function getPaddleWebhookCidrs(): Promise<string[] | null> {
   if (ipsCache && Date.now() - ipsCache.fetchedAt < IPS_TTL_MS) return ipsCache.cidrs;
-  const host = process.env.PADDLE_API_KEY?.startsWith("pdl_live_")
+  const host = process.env.PADDLE_API_KEY?.trim().startsWith("pdl_live_")
     ? "https://api.paddle.com"
     : "https://sandbox-api.paddle.com";
   try {

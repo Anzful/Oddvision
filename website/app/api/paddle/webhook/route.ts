@@ -31,6 +31,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Not configured" }, { status: 500 });
   }
 
+  if (!verifyPaddleSignature(rawBody, req.headers.get("paddle-signature"), secret)) {
+    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+  }
+
   // Only accept deliveries from Paddle's published IPs. Enforced on Vercel,
   // which sets x-real-ip itself so it can't be spoofed; local tunnels skip it.
   if (process.env.VERCEL) {
@@ -46,15 +50,14 @@ export async function POST(req: Request) {
     }
   }
 
-  if (!verifyPaddleSignature(rawBody, req.headers.get("paddle-signature"), secret)) {
-    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
-  }
-
   let event: PaddleWebhookEvent;
   try {
     event = JSON.parse(rawBody);
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+  if (!event || typeof event.event_type !== "string" || !event.data || typeof event.data !== "object") {
+    return NextResponse.json({ error: "Invalid event" }, { status: 400 });
   }
 
   const subscriptionId = event.event_type.startsWith("subscription.")
@@ -65,6 +68,9 @@ export async function POST(req: Request) {
 
   if (!subscriptionId) {
     return NextResponse.json({ received: true, ignored: event.event_type });
+  }
+  if (typeof subscriptionId !== "string" || !/^sub_[a-z0-9]+$/i.test(subscriptionId)) {
+    return NextResponse.json({ error: "Invalid subscription id" }, { status: 400 });
   }
 
   try {

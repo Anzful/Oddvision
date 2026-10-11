@@ -9,55 +9,9 @@ import { IconCheck, IconCrown, IconArrowRight, IconInfinity, IconHeadset, IconSp
 import Reveal from "./Reveal";
 import { PADDLE_PUBLIC, isPaddleConfigured } from "../../lib/paddle-config";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+import { fetchProStatusDirect, isRowPro, type UsageRow } from "../../lib/usage-client";
+
 const PRICE_LABEL = "$8.00";
-
-type UsageRow = {
-  is_pro?: boolean;
-  pro_expires_at?: string | null;
-  pro_granted_by?: string | null;
-  next_billing_date?: string | null;
-  subscription_status?: string | null;
-  subscription_cancel_at?: string | null;
-  paddle_customer_id?: string | null;
-  paddle_subscription_id?: string | null;
-};
-
-// Use direct REST API call instead of Supabase client to avoid hanging during session recovery
-const fetchProStatusDirect = async (userId: string, accessToken: string): Promise<UsageRow | null> => {
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-    const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/user_usage?user_id=eq.${userId}&select=*`,
-      {
-        method: 'GET',
-        headers: {
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        signal: controller.signal,
-      }
-    );
-
-    clearTimeout(timeoutId);
-    if (!response.ok) {
-      console.error('[fetchProStatusDirect] HTTP error:', response.status, response.statusText);
-      return null;
-    }
-    const data = await response.json();
-    return data && data.length > 0 ? data[0] : null;
-  } catch (err) {
-    console.error('[fetchProStatusDirect]', err instanceof Error && err.name === 'AbortError' ? 'timed out after 10s' : err);
-    return null;
-  }
-};
-
-const isRowPro = (usage: UsageRow | null) =>
-  !!usage?.is_pro && !(usage.pro_expires_at && new Date(usage.pro_expires_at) <= new Date());
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
@@ -73,64 +27,71 @@ export default function PricingSection() {
   const [subscriptionData, setSubscriptionData] = useState<UsageRow | null>(null);
   const [paddle, setPaddle] = useState<Paddle | null>(null);
   const [activating, setActivating] = useState(false);
+  const [statusError, setStatusError] = useState<string | null>(null);
+  const [checkoutError, setCheckoutError] = useState(false);
+  const [checkoutOpening, setCheckoutOpening] = useState(false);
+  const checkoutOpeningRef = useRef(false);
+  const checkoutOwnerRef = useRef<string | null>(null);
+  const [purchasePending, setPurchasePending] = useState(false);
+  const userIdRef = useRef<string | null>(null);
+  const statusRequestRef = useRef(0);
+  const confirmingRef = useRef<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
   const [notice, setNotice] = useState<{ kind: 'success' | 'info' | 'error'; text: string } | null>(null);
 
   const refreshStatus = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return null;
-    const usage = await fetchProStatusDirect(session.user.id, session.access_token);
-    setSubscriptionData(usage);
-    setIsPro(isRowPro(usage));
-    return usage;
+    if (!session || session.user.id !== userIdRef.current) return null;
+    const requestId = ++statusRequestRef.current;
+    try {
+      const usage = await fetchProStatusDirect(session.user.id, session.access_token);
+      if (session.user.id !== userIdRef.current || requestId !== statusRequestRef.current) return null;
+      setStatusError(null);
+      setSubscriptionData(usage);
+      setIsPro(isRowPro(usage));
+      window.dispatchEvent(new Event('oddvision:subscription-updated'));
+      return usage;
+    } catch (err) {
+      if (requestId === statusRequestRef.current && session.user.id === userIdRef.current) {
+        setStatusError(err instanceof Error ? err.message : 'Could not load your subscription.');
+      }
+      return null;
+    } finally {
+      if (requestId === statusRequestRef.current && session.user.id === userIdRef.current) setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
     let mounted = true;
-    let hasReceivedEvent = false;
-    let isProcessing = false;
-
-    const handleAuthChange = async (session: { user: User | null; access_token?: string } | null) => {
-      if (!mounted || isProcessing) return;
-      isProcessing = true;
-
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const currentRevision = ++statusRequestRef.current;
       const currentUser = session?.user ?? null;
+      if (userIdRef.current !== (currentUser?.id ?? null)) {
+        setPurchasePending(false);
+        setActivating(false);
+        setNotice(null);
+      }
+      userIdRef.current = currentUser?.id ?? null;
       setUser(currentUser);
-
-      if (currentUser && session?.access_token) {
-        const usage = await fetchProStatusDirect(currentUser.id, session.access_token);
-        if (mounted) {
-          setIsPro(isRowPro(usage));
-          setSubscriptionData(usage);
-        }
-      } else if (mounted) {
-        setIsPro(false);
-        setSubscriptionData(null);
-      }
-
-      if (mounted) setLoading(false);
-      isProcessing = false;
-    };
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      hasReceivedEvent = true;
-      if (!mounted) return;
-      await handleAuthChange(session ? { user: session.user, access_token: session.access_token } : null);
+      setStatusError(null);
+      setIsPro(false);
+      setSubscriptionData(null);
+      setLoading(Boolean(session));
+      if (!session) return;
+      // Do not return a promise to the auth callback or drop newer auth events.
+      void fetchProStatusDirect(session.user.id, session.access_token).then((usage) => {
+        if (!mounted || statusRequestRef.current !== currentRevision) return;
+        setIsPro(isRowPro(usage));
+        setSubscriptionData(usage);
+      }).catch((err) => {
+        if (mounted && statusRequestRef.current === currentRevision) setStatusError(err.message);
+      }).finally(() => {
+        if (mounted && statusRequestRef.current === currentRevision) setLoading(false);
+      });
     });
-
-    // Fallback: manually check session if no event fires within 100ms
-    const fallbackTimeout = setTimeout(async () => {
-      if (!hasReceivedEvent && mounted && !isProcessing) {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (mounted && !hasReceivedEvent) {
-          await handleAuthChange(session ? { user: session.user, access_token: session.access_token } : null);
-        }
-      }
-    }, 100);
-
     return () => {
       mounted = false;
-      clearTimeout(fallbackTimeout);
+      userIdRef.current = null;
       subscription.unsubscribe();
     };
   }, []);
@@ -139,21 +100,33 @@ export default function PricingSection() {
   // turn Pro on. Paddle can take a few seconds to create the subscription, so
   // poll briefly; the webhook will finish the job if this times out.
   const confirmPurchase = useCallback(async (transactionId: string) => {
+    const ownerId = userIdRef.current;
+    if (!ownerId || confirmingRef.current === transactionId) return;
+    confirmingRef.current = transactionId;
+    sessionStorage.setItem(`paddle-pending:${ownerId}`, transactionId);
+    setPurchasePending(true);
     setActivating(true);
     setNotice({ kind: 'info', text: 'Payment received — activating Pro…' });
 
     for (let attempt = 0; attempt < 15; attempt++) {
+      if (userIdRef.current !== ownerId) break;
       try {
         const token = await getAccessToken();
+        if (!token) break;
         const res = await fetch('/api/paddle/sync', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({ transactionId }),
+          signal: AbortSignal.timeout(10000),
         });
         const result = await res.json().catch(() => ({}));
+        if (userIdRef.current !== ownerId) break;
         if (res.ok && result.isPro) {
+          sessionStorage.removeItem(`paddle-pending:${ownerId}`);
+          setPurchasePending(false);
           await refreshStatus();
           setActivating(false);
+          confirmingRef.current = null;
           setNotice({ kind: 'success', text: 'You’re Pro! Your extension will pick it up automatically.' });
           return;
         }
@@ -164,15 +137,32 @@ export default function PricingSection() {
       await sleep(2000);
     }
 
+    confirmingRef.current = null;
+    if (userIdRef.current !== ownerId) {
+      setActivating(false);
+      setPurchasePending(false);
+      return;
+    }
     // Fall back to whatever the webhook has written by now.
     const usage = await refreshStatus();
     setActivating(false);
+    if (isRowPro(usage)) {
+      sessionStorage.removeItem(`paddle-pending:${ownerId}`);
+      setPurchasePending(false);
+    }
     setNotice(
       isRowPro(usage)
         ? { kind: 'success', text: 'You’re Pro! Your extension will pick it up automatically.' }
-        : { kind: 'info', text: 'Payment received. Pro will switch on within a minute — refresh this page shortly. If it doesn’t, email oddvisionai@gmail.com.' }
+        : { kind: 'info', text: 'Payment received. Activation is still pending — refresh this page shortly. If it doesn’t, email oddvisionai@gmail.com.' }
     );
   }, [refreshStatus]);
+
+  const signedInUserId = user?.id;
+  useEffect(() => {
+    if (!signedInUserId) return;
+    const pending = sessionStorage.getItem(`paddle-pending:${signedInUserId}`);
+    if (pending) void confirmPurchase(pending);
+  }, [signedInUserId, confirmPurchase]);
 
   // Paddle's event callback is registered once, so route it through a ref.
   const confirmRef = useRef(confirmPurchase);
@@ -191,12 +181,21 @@ export default function PricingSection() {
       checkout: { settings: { displayMode: 'overlay', theme: 'dark', allowLogout: false } },
       eventCallback: (event) => {
         if (event.name === CheckoutEventNames.CHECKOUT_COMPLETED && event.data?.transaction_id) {
-          confirmRef.current(event.data.transaction_id);
+          const owner = checkoutOwnerRef.current;
+          if (owner) sessionStorage.setItem(`paddle-pending:${owner}`, event.data.transaction_id);
+          if (!owner || owner === userIdRef.current) void confirmRef.current(event.data.transaction_id);
         }
       },
     })
-      .then((instance) => { if (!cancelled && instance) setPaddle(instance); })
-      .catch((err) => console.error('[PricingSection] Paddle failed to load', err));
+      .then((instance) => {
+        if (cancelled) return;
+        if (instance) setPaddle(instance);
+        else setCheckoutError(true);
+      })
+      .catch((err) => {
+        console.error('[PricingSection] Paddle failed to load', err);
+        if (!cancelled) setCheckoutError(true);
+      });
     return () => { cancelled = true; };
   }, []);
 
@@ -206,14 +205,35 @@ export default function PricingSection() {
     paddle?.Update({ pwCustomer: paddleCustomerId ? { id: paddleCustomerId } : {} });
   }, [paddle, paddleCustomerId]);
 
-  const openCheckout = () => {
-    if (!paddle || !user) return;
+  const openCheckout = async () => {
+    if (!paddle || !user || loading || statusError || purchasePending || isPro || checkoutOpeningRef.current ||
+        (subscriptionData?.paddle_subscription_id && subscriptionData.subscription_status !== 'canceled')) return;
+    checkoutOpeningRef.current = true;
+    setCheckoutOpening(true);
     setNotice(null);
-    paddle.Checkout.open({
-      items: [{ priceId: PADDLE_PUBLIC.priceId, quantity: 1 }],
-      ...(user.email ? { customer: { email: user.email } } : {}),
-      customData: { user_id: user.id },
-    });
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session || session.user.id !== userIdRef.current) return;
+      // Refresh before opening: another tab may already have completed a purchase.
+      const requestId = ++statusRequestRef.current;
+      const usage = await fetchProStatusDirect(session.user.id, session.access_token);
+      if (session.user.id !== userIdRef.current || requestId !== statusRequestRef.current) return;
+      setSubscriptionData(usage);
+      setIsPro(isRowPro(usage));
+      if (isRowPro(usage) || (usage?.paddle_subscription_id && usage.subscription_status !== 'canceled')) return;
+      checkoutOwnerRef.current = session.user.id;
+      paddle.Checkout.open({
+        items: [{ priceId: PADDLE_PUBLIC.priceId, quantity: 1 }],
+        ...(usage?.paddle_customer_id ? { customer: { id: usage.paddle_customer_id } }
+          : session.user.email ? { customer: { email: session.user.email } } : {}),
+        customData: { user_id: session.user.id },
+      });
+    } catch (err) {
+      setNotice({ kind: 'error', text: err instanceof Error ? err.message : 'Could not open checkout. Please try again.' });
+    } finally {
+      checkoutOpeningRef.current = false;
+      setCheckoutOpening(false);
+    }
   };
 
   const openPortal = async () => {
@@ -221,9 +241,11 @@ export default function PricingSection() {
     setNotice(null);
     try {
       const token = await getAccessToken();
+      if (!token) throw new Error('Please sign in again');
       const res = await fetch('/api/paddle/portal', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(10000),
       });
       const result = await res.json().catch(() => ({}));
       if (!res.ok || !result.url) throw new Error(result.error || 'Could not open billing');
@@ -298,18 +320,21 @@ export default function PricingSection() {
                   }} />
                   {activating ? 'Activating Pro…' : 'Loading...'}
                 </div>
-              ) : isPro ? (
+              ) : statusError ? (
+                <p role="alert">{statusError}</p>
+              ) : isPro || (hasPaddleSubscription && status !== 'canceled') ? (
                 <div className="pricing-pro-status">
                   <div className="pricing-pro-title">
                     <IconCrown size={20} style={{ display: 'inline', marginRight: '8px', verticalAlign: 'text-bottom' }} />
-                    You&apos;re Pro
+                    {isPro ? 'You’re Pro' : 'Manage your subscription'}
                   </div>
                   <p className="pricing-pro-text">
                     {status === 'past_due'
                       ? 'Your last payment failed — please update your payment method to keep Pro.'
                       : cancelAt
-                        ? `Canceled — Pro stays active until ${formatDate(cancelAt)}.`
-                        : 'Your subscription is active.'}
+                        ? (isPro ? `Canceled — Pro stays active until ${formatDate(cancelAt)}.` : 'Your paid period has ended. Manage your subscription below.')
+                        : status === 'paused' ? 'Your subscription is paused. Manage it below.'
+                        : isPro ? 'Your subscription is active.' : 'Manage your existing subscription below, or contact us if your payment has not activated Pro.'}
                   </p>
                   {!cancelAt && subscriptionData?.next_billing_date && (
                     <p style={{ marginTop: '8px', fontSize: '13px', color: 'var(--white-muted)' }}>
@@ -336,6 +361,10 @@ export default function PricingSection() {
                     Email us to get Pro now
                   </a>
                 </div>
+              ) : user && purchasePending ? (
+                <p role="status">Your payment is still being verified. Refresh this page to check again, or email oddvisionai@gmail.com.</p>
+              ) : user && checkoutError ? (
+                <p role="alert">Checkout could not load. Refresh the page or email oddvisionai@gmail.com.</p>
               ) : user ? (
                 <div style={{ marginTop: '8px' }}>
                   <button
@@ -343,9 +372,9 @@ export default function PricingSection() {
                     className="btn btn-primary"
                     style={{ width: '100%' }}
                     onClick={openCheckout}
-                    disabled={!paddle}
+                    disabled={!paddle || checkoutOpening}
                   >
-                    {paddle ? 'Subscribe' : 'Loading checkout…'}
+                    {checkoutOpening ? 'Checking subscription…' : paddle ? 'Subscribe' : 'Loading checkout…'}
                     {paddle && <IconArrowRight size={18} />}
                   </button>
                   <p style={{ marginTop: '12px', fontSize: '13px', color: 'var(--white-muted)', textAlign: 'center' }}>

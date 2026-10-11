@@ -22,26 +22,31 @@ type SubscriptionLike = Pick<
 
 /** Pure mapping from a Paddle subscription to the access we grant. */
 export function accessFromSubscription(sub: SubscriptionLike, now = new Date()): SubscriptionAccess {
-  const isPro = ACCESS_STATUSES.has(sub.status);
   const cancelAt =
     sub.scheduledChange?.action === "cancel" ? sub.scheduledChange.effectiveAt : null;
+  const stopsAt = ["cancel", "pause"].includes(sub.scheduledChange?.action ?? "")
+    ? sub.scheduledChange!.effectiveAt : null;
 
   let proExpiresAt: string | null = null;
-  if (isPro) {
-    if (cancelAt) {
+  if (ACCESS_STATUSES.has(sub.status)) {
+    if (stopsAt) {
       // Canceled at period end: access stops exactly when the paid period does.
-      proExpiresAt = new Date(cancelAt).toISOString();
+      proExpiresAt = new Date(stopsAt).toISOString();
     } else {
       const periodEnd = sub.currentBillingPeriod?.endsAt ?? sub.nextBilledAt;
-      const end = periodEnd ? new Date(periodEnd).getTime() : now.getTime() + 30 * DAY_MS;
+      // Keep the documented grace policy throughout Paddle's payment retries.
+      const end = sub.status === "past_due"
+        ? Math.max(periodEnd ? new Date(periodEnd).getTime() : 0, now.getTime())
+        : periodEnd ? new Date(periodEnd).getTime() : now.getTime();
       proExpiresAt = new Date(end + GRACE_DAYS * DAY_MS).toISOString();
     }
   }
 
+  const isPro = proExpiresAt !== null && new Date(proExpiresAt) > now;
   return {
     isPro,
     proExpiresAt,
-    nextBillingDate: isPro && !cancelAt ? sub.nextBilledAt : null,
+    nextBillingDate: isPro && !stopsAt ? sub.nextBilledAt : null,
     cancelAt,
   };
 }
@@ -64,63 +69,82 @@ export type SyncResult =
 export async function syncSubscriptionToUser(sub: Subscription): Promise<SyncResult> {
   const db = getSupabaseAdmin();
 
-  let userId = userIdFromCustomData(sub.customData);
-  if (!userId) {
-    const { data } = await db
-      .from("user_usage")
-      .select("user_id")
-      .eq("paddle_subscription_id", sub.id)
-      .maybeSingle();
-    userId = data?.user_id ?? null;
+  // An existing server-side link wins over editable checkout custom data.
+  const { data: linked, error: linkError } = await db
+    .from("user_usage")
+    .select("user_id")
+    .eq("paddle_subscription_id", sub.id)
+    .maybeSingle();
+  if (linkError) throw linkError;
+  const customUserId = userIdFromCustomData(sub.customData);
+  if (linked && customUserId && linked.user_id !== customUserId) {
+    throw new Error("Subscription ownership changed unexpectedly");
   }
+  const userId: string | null = linked?.user_id ?? customUserId;
   if (!userId) return { status: "unlinked" };
 
-  const { data: row, error: readError } = await db
-    .from("user_usage")
-    .select("is_pro, pro_granted_by, paddle_subscription_id, subscription_status, paddle_updated_at")
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (readError) throw readError;
+  const priceId = process.env.NEXT_PUBLIC_PADDLE_PRICE_ID?.trim();
+  if (!priceId) throw new Error("NEXT_PUBLIC_PADDLE_PRICE_ID is not set");
+  const proPrices = new Set([priceId, ...(process.env.PADDLE_PRO_PRICE_IDS ?? "").split(",").map((id) => id.trim())]);
+  const hasProPrice = sub.items.some((item) => proPrices.has(item.price.id));
+  // Preserve grandfathered prices for existing links when the checkout price changes.
+  if (!linked && !hasProPrice) return { status: "ignored", userId };
 
-  // Never overwrite newer data with an older snapshot.
-  if (
-    row?.paddle_subscription_id === sub.id &&
-    row.paddle_updated_at &&
-    new Date(row.paddle_updated_at) > new Date(sub.updatedAt)
-  ) {
-    return { status: "stale", userId };
+  // Compare-and-swap makes the stale-event and manual-grant checks atomic.
+  // A plain read followed by upsert lets concurrent webhooks undo one another.
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const { data: row, error: readError } = await db
+      .from("user_usage")
+      .select("is_pro, pro_expires_at, pro_granted_by, paddle_subscription_id, subscription_status, paddle_updated_at")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (readError) throw readError;
+
+    if (row?.paddle_subscription_id === sub.id && row.paddle_updated_at &&
+        new Date(row.paddle_updated_at) > new Date(sub.updatedAt)) {
+      return { status: "stale", userId };
+    }
+
+    const access = accessFromSubscription(sub);
+    // A dead secondary subscription must not switch off a different live one.
+    if (row?.paddle_subscription_id && row.paddle_subscription_id !== sub.id &&
+        !access.isPro && ACCESS_STATUSES.has(row.subscription_status ?? "")) {
+      return { status: "ignored", userId };
+    }
+
+    const update: Record<string, unknown> = {
+      paddle_customer_id: sub.customerId,
+      paddle_subscription_id: sub.id,
+      subscription_status: sub.status,
+      next_billing_date: access.nextBillingDate,
+      subscription_cancel_at: access.cancelAt,
+      paddle_updated_at: sub.updatedAt,
+    };
+    const founderGranted = Boolean(row?.pro_granted_by);
+    if (!founderGranted) {
+      update.is_pro = access.isPro;
+      update.pro_expires_at = access.proExpiresAt;
+    }
+
+    if (!row) {
+      // Another request may create the usage row while this request is running.
+      const { data, error } = await db.from("user_usage")
+        .upsert({ user_id: userId, ...update }, { onConflict: "user_id", ignoreDuplicates: true })
+        .select("user_id");
+      if (error) throw error;
+      if (!data?.length) continue;
+    } else {
+      let query = db.from("user_usage").update(update).eq("user_id", userId);
+      for (const column of ["paddle_subscription_id", "paddle_updated_at", "subscription_status", "pro_granted_by", "is_pro", "pro_expires_at"] as const) {
+        query = row[column] == null ? query.is(column, null) : query.eq(column, row[column]);
+      }
+      const { data, error } = await query.select("user_id");
+      if (error) throw error;
+      if (!data?.length) continue;
+    }
+    return { status: "synced", userId, isPro: founderGranted
+      ? !!row?.is_pro && (!row.pro_expires_at || new Date(row.pro_expires_at) > new Date())
+      : access.isPro };
   }
-
-  const access = accessFromSubscription(sub);
-
-  // A dead secondary subscription must not switch off a different live one.
-  if (
-    row?.paddle_subscription_id &&
-    row.paddle_subscription_id !== sub.id &&
-    !access.isPro &&
-    ACCESS_STATUSES.has(row.subscription_status ?? "")
-  ) {
-    return { status: "ignored", userId };
-  }
-
-  const update: Record<string, unknown> = {
-    user_id: userId,
-    paddle_customer_id: sub.customerId,
-    paddle_subscription_id: sub.id,
-    subscription_status: sub.status,
-    next_billing_date: access.nextBillingDate,
-    subscription_cancel_at: access.cancelAt,
-    paddle_updated_at: sub.updatedAt,
-  };
-  // Founder-granted Pro is managed by hand; billing never revokes it.
-  const founderGranted = Boolean(row?.pro_granted_by);
-  if (!founderGranted) {
-    update.is_pro = access.isPro;
-    update.pro_expires_at = access.proExpiresAt;
-  }
-
-  const { error } = await db.from("user_usage").upsert(update, { onConflict: "user_id" });
-  if (error) throw error;
-
-  return { status: "synced", userId, isPro: founderGranted ? Boolean(row?.is_pro) : access.isPro };
+  throw new Error("Subscription changed concurrently; retry sync");
 }

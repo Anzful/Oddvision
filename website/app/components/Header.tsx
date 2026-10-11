@@ -6,6 +6,7 @@ import React, { useState, useEffect } from "react";
 import { IconMenu2, IconX, IconUser, IconCrown } from "@tabler/icons-react";
 import { supabase } from "../../lib/supabaseClient";
 import { User } from "@supabase/supabase-js";
+import { fetchProStatusDirect, isRowPro } from "../../lib/usage-client";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -22,50 +23,30 @@ export default function Header() {
   }, []);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        const { data } = await supabase
-          .from('user_usage')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .maybeSingle();
-        
-        if (data?.is_pro) {
-          // Check if pro has expired
-          if (data.pro_expires_at && new Date(data.pro_expires_at) <= new Date()) {
-            setIsPro(false);
-          } else {
-            setIsPro(true);
-          }
-        }
-      }
+    let mounted = true;
+    let revision = 0;
+    let currentSession: { user: User; access_token: string } | null = null;
+    const refresh = () => {
+      const session = currentSession;
+      const currentRevision = ++revision;
+      if (!session) return;
+      void fetchProStatusDirect(session.user.id, session.access_token).then((usage) => {
+        if (mounted && revision === currentRevision) setIsPro(isRowPro(usage));
+      }).catch(() => { /* Keep the last known badge if a refresh fails. */ });
     };
-    checkAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      currentSession = session;
       setUser(session?.user ?? null);
       setIsPro(false);
-
-      if (session?.user) {
-         const { data } = await supabase
-          .from('user_usage')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .single();
-         if (data?.is_pro) {
-           if (data.pro_expires_at && new Date(data.pro_expires_at) <= new Date()) {
-             setIsPro(false);
-           } else {
-             setIsPro(true);
-           }
-         }
-      }
+      ++revision;
+      refresh();
     });
-
-    return () => subscription.unsubscribe();
+    window.addEventListener('oddvision:subscription-updated', refresh);
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+      window.removeEventListener('oddvision:subscription-updated', refresh);
+    };
   }, []);
 
   const handleSignOut = async () => {
